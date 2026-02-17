@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { ChevronRight, AlertCircle } from "lucide-react";
 
@@ -12,13 +11,21 @@ const languages = [
   { code: "zh", name: "中文" },
 ];
 
+// Format phone number for display: (123) 456-7890
+function formatPhone(value: string) {
+  const digits = value.replace(/\D/g, "").slice(0, 10);
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+}
+
 export default function SignUp() {
   const navigate = useNavigate();
-  const { login } = useAuth();
   const { t } = useLanguage();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [phone, setPhone] = useState("");
   const [zipCode, setZipCode] = useState("");
   const [language, setLanguage] = useState("en");
   const [error, setError] = useState("");
@@ -29,11 +36,14 @@ export default function SignUp() {
     return zipRegex.test(zip.replace(/\s/g, ""));
   };
 
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPhone(formatPhone(e.target.value));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
-    // Validation
     if (!username || username.length < 3) {
       setError(t("error.usernameTooShort"));
       return;
@@ -49,6 +59,12 @@ export default function SignUp() {
       return;
     }
 
+    const phoneDigits = phone.replace(/\D/g, "");
+    if (phoneDigits.length !== 10) {
+      setError("Please enter a valid 10-digit US phone number");
+      return;
+    }
+
     if (!validateZipCode(zipCode)) {
       setError(t("error.zipCodeInvalid"));
       return;
@@ -57,13 +73,13 @@ export default function SignUp() {
     setLoading(true);
 
     try {
-      // Call sign-up API
       const response = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           username,
           password,
+          phone: phoneDigits,
           zipCode: zipCode.replace(/\D/g, ""),
           language,
         }),
@@ -75,8 +91,21 @@ export default function SignUp() {
       }
 
       const data = await response.json();
-      login(data.user);
-      navigate("/");
+
+      // Store pending user info in sessionStorage so VerifyPhone can use it.
+      // Do NOT log in yet — the user must verify their phone first.
+      sessionStorage.setItem(
+        "pending_user",
+        JSON.stringify({
+          id: data.user.id,
+          username: data.user.username,
+          phone: phoneDigits,
+          zipCode: zipCode.replace(/\D/g, ""),
+          language,
+        })
+      );
+
+      navigate("/verify-phone");
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
@@ -129,6 +158,7 @@ export default function SignUp() {
                   ))}
                 </select>
               </div>
+
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Username
@@ -169,6 +199,23 @@ export default function SignUp() {
                   disabled={loading}
                   className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-50 transition disabled:opacity-50"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Phone Number
+                </label>
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={handlePhoneChange}
+                  placeholder="(555) 123-4567"
+                  disabled={loading}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-50 transition disabled:opacity-50"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Used for account verification (US numbers only)
+                </p>
               </div>
 
               <div>

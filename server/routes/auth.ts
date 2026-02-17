@@ -1,20 +1,52 @@
 import { RequestHandler } from "express";
 import { createClient } from "@supabase/supabase-js";
 
-// Called inside each handler so env vars are available at request time (required for Cloudflare Workers)
+// Use the service role key on the server so Supabase RLS doesn't block
+// server-side operations. The service role key bypasses RLS, which is correct
+// for trusted server code. Never expose this key to the browser.
 function getSupabase() {
   return createClient(
     process.env.SUPABASE_URL!,
-    process.env.SUPABASE_ANON_KEY!
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 }
 
-function hashPassword(password: string): string {
-  return Buffer.from(password).toString("base64");
+// SHA-256 + random salt via Web Crypto API (available in both Cloudflare
+// Workers and Node.js 22+). Stored format: "<hex_salt>:<hex_hash>"
+async function hashPassword(password: string, salt?: string): Promise<string> {
+  const actualSalt =
+    salt ??
+    Array.from(crypto.getRandomValues(new Uint8Array(16)))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+
+  const hashBuffer = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(actualSalt + password)
+  );
+  const hashHex = Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+
+  return `${actualSalt}:${hashHex}`;
 }
 
+async function verifyPassword(password: string, stored: string): Promise<boolean> {
+  const colonIdx = stored.indexOf(":");
+  if (colonIdx === -1) {
+    // Legacy base64 passwords — migrate on first successful login by checking
+    // both formats. Remove this branch once all users have logged in once.
+    const legacyHash = Buffer.from(password).toString("base64");
+    return legacyHash === stored;
+  }
+  const salt = stored.slice(0, colonIdx);
+  const recomputed = await hashPassword(password, salt);
+  return recomputed === stored;
+}
+
+// Always produces exactly 6 digits (100000–999999)
 function generateVerificationCode(): string {
-  return Math.random().toString().slice(2, 8);
+  return String(Math.floor(100000 + Math.random() * 900000));
 }
 
 export const handleSignup: RequestHandler = async (req, res) => {
@@ -33,28 +65,31 @@ export const handleSignup: RequestHandler = async (req, res) => {
 
     const supabase = getSupabase();
 
-    const { data: existing } = await supabase
-      .from("users")
-      .select("id")
-      .eq("username", username)
-      .maybeSingle();
+    // Check both tables so a pending registration also blocks re-signup
+    const [{ data: existingUser }, { data: existingPending }] = await Promise.all([
+      supabase.from("users").select("id").eq("username", username).maybeSingle(),
+      supabase.from("pending_users").select("id").eq("username", username).maybeSingle(),
+    ]);
 
-    if (existing) {
+    if (existingUser || existingPending) {
       return res.status(400).json({ message: "Username already exists" });
     }
 
     const verificationCode = generateVerificationCode();
     const userId = `user_${Date.now()}`;
+    const hashedPassword = await hashPassword(password);
 
-    await supabase.from("pending_users").insert({
+    const { error: insertError } = await supabase.from("pending_users").insert({
       id: userId,
       username,
-      password: hashPassword(password),
+      password: hashedPassword,
       phone,
       verification_code: verificationCode,
     });
 
-    // No real SMS service — find the code in Cloudflare Workers logs or via `npx wrangler tail`
+    if (insertError) throw insertError;
+
+    // No real SMS service yet — find the code via `npx wrangler tail`
     console.log(`[SMS] Verification code for ${phone}: ${verificationCode}`);
 
     res.json({
@@ -185,7 +220,12 @@ export const handleLogin: RequestHandler = async (req, res) => {
       .eq("username", username)
       .maybeSingle();
 
-    if (!user || user.password !== hashPassword(password)) {
+    if (!user) {
+      return res.status(401).json({ message: "Invalid username or password" });
+    }
+
+    const passwordMatches = await verifyPassword(password, user.password);
+    if (!passwordMatches) {
       return res.status(401).json({ message: "Invalid username or password" });
     }
 

@@ -16,13 +16,18 @@ import {
   handleExportAllData,
 } from "./routes/orders";
 
-export function createServer() {
+export function createServer(opts?: { skipBodyParsing?: boolean }) {
   const app = express();
 
   // Middleware
   app.use(cors());
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
+  // Body parsing is skipped in the Cloudflare Worker because the body is
+  // pre-parsed in worker.ts before Express is called. The Node.js server
+  // still needs it.
+  if (!opts?.skipBodyParsing) {
+    app.use(express.json());
+    app.use(express.urlencoded({ extended: true }));
+  }
 
   // Example API routes
   app.get("/api/ping", (_req, res) => {

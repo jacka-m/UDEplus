@@ -6,9 +6,5 @@
   "assets": {
     "directory": "./dist/spa",
     "binding": "ASSETS"
-  },
-  "vars": {
-    "SUPABASE_URL": "",
-    "SUPABASE_ANON_KEY": ""
   }
 }
