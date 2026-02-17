@@ -737,73 +737,79 @@ export default function AdminMLPanel() {
 
             {/* Orders Table */}
             <div className="overflow-x-auto border border-gray-200 rounded-lg">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-b border-gray-200">
+              <table className="w-full text-base">
+                <thead className="bg-gradient-to-r from-purple-600 to-blue-600 text-white sticky top-0 z-10">
                   <tr>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-900">Date</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-900">Score</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-900">Zone</th>
-                    <th className="px-4 py-3 text-right font-semibold text-gray-900">Payout</th>
-                    <th className="px-4 py-3 text-right font-semibold text-gray-900">Miles</th>
-                    <th className="px-4 py-3 text-right font-semibold text-gray-900">Stops</th>
-                    <th className="px-4 py-3 text-right font-semibold text-gray-900">Time (min)</th>
-                    <th className="px-4 py-3 text-center font-semibold text-gray-900">Recommend</th>
+                    <th className="px-6 py-4 text-left font-bold text-white">Date</th>
+                    <th className="px-6 py-4 text-left font-bold text-white">Score</th>
+                    <th className="px-6 py-4 text-left font-bold text-white">Zone</th>
+                    <th className="px-6 py-4 text-right font-bold text-white">Payout</th>
+                    <th className="px-6 py-4 text-right font-bold text-white">Miles</th>
+                    <th className="px-6 py-4 text-right font-bold text-white">Stops</th>
+                    <th className="px-6 py-4 text-right font-bold text-white">Time</th>
+                    <th className="px-6 py-4 text-center font-bold text-white">Recommendation</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-gray-200">
                   {filteredOrders.length > 0 ? (
                     filteredOrders.map((order, idx) => (
                       <tr
                         key={order.id}
-                        className={`border-b border-gray-200 ${
+                        className={`transition hover:shadow-md ${
                           idx % 2 === 0 ? "bg-white" : "bg-gray-50"
-                        } hover:bg-blue-50 transition`}
+                        } hover:bg-blue-50`}
                       >
-                        <td className="px-4 py-3 text-gray-900">
+                        <td className="px-6 py-4 text-gray-900 font-medium">
                           {new Date(order.date).toLocaleDateString("en-US", {
                             month: "short",
                             day: "numeric",
+                            year: "numeric",
                           })}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-6 py-4">
                           <span
-                            className={`px-3 py-1 rounded-lg font-semibold border text-xs ${getScoreColor(
+                            className={`inline-flex items-center justify-center w-16 px-4 py-2 rounded-lg font-bold border text-sm ${getScoreColor(
                               order.score.score
                             )}`}
                           >
                             {order.score.score.toFixed(1)}/10
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-gray-700">{order.pickupZone}</td>
-                        <td className="px-4 py-3 text-right text-gray-900 font-semibold">
+                        <td className="px-6 py-4 text-gray-900 font-medium max-w-xs truncate" title={order.pickupZone}>
+                          {order.pickupZone}
+                        </td>
+                        <td className="px-6 py-4 text-right text-gray-900 font-bold text-lg">
                           ${(order.actualPay || order.shownPayout || 0).toFixed(2)}
                         </td>
-                        <td className="px-4 py-3 text-right text-gray-700">
-                          {order.miles.toFixed(1)}
+                        <td className="px-6 py-4 text-right text-gray-700 font-medium">
+                          {order.miles.toFixed(1)} mi
                         </td>
-                        <td className="px-4 py-3 text-right text-gray-700">
+                        <td className="px-6 py-4 text-right text-gray-700 font-medium">
                           {order.numberOfStops}
                         </td>
-                        <td className="px-4 py-3 text-right text-gray-700">
-                          {order.actualTotalTime || order.estimatedTime || 0}
+                        <td className="px-6 py-4 text-right text-gray-700 font-medium">
+                          {order.actualTotalTime || order.estimatedTime || 0} min
                         </td>
-                        <td className="px-4 py-3 text-center">
+                        <td className="px-6 py-4 text-center">
                           <span
-                            className={`inline-block px-2 py-1 rounded font-semibold text-xs ${
+                            className={`inline-block px-4 py-2 rounded-full font-bold text-sm transition ${
                               order.score.recommendation === "take"
-                                ? "bg-green-100 text-green-800"
-                                : "bg-red-100 text-red-800"
+                                ? "bg-green-100 text-green-800 border border-green-300"
+                                : "bg-red-100 text-red-800 border border-red-300"
                             }`}
                           >
-                            {order.score.recommendation === "take" ? "Take" : "Decline"}
+                            {order.score.recommendation === "take" ? "✓ Take" : "✗ Decline"}
                           </span>
                         </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={8} className="px-4 py-8 text-center text-gray-600">
-                        No orders match the current filters
+                      <td colSpan={8} className="px-6 py-12 text-center text-gray-500 text-base">
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="text-4xl">📊</div>
+                          <p>No orders match the current filters</p>
+                        </div>
                       </td>
                     </tr>
                   )}
