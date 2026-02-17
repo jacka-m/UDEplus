@@ -1,43 +1,14 @@
 import { RequestHandler } from "express";
+import { createClient } from "@supabase/supabase-js";
 
-// In-memory storage (in production, use a database)
-interface StoredUser {
-  id: string;
-  username: string;
-  password: string;
-  phone: string;
-  zipCode: string;
-  language: string;
-  completedOnboarding: boolean;
-  verificationCode?: string;
-  createdAt: string;
+// Called inside each handler so env vars are available at request time (required for Cloudflare Workers)
+function getSupabase() {
+  return createClient(
+    process.env.SUPABASE_URL!,
+    process.env.SUPABASE_ANON_KEY!
+  );
 }
 
-interface PendingUser {
-  id: string;
-  username: string;
-  password: string;
-  phone: string;
-  verificationCode: string;
-  createdAt: string;
-}
-
-// Master account for testing/demo - password is hashed using base64
-const masterAccount: StoredUser = {
-  id: "user_master_001",
-  username: "jack_am",
-  password: "QWtjYWoxNzc2OEBuZA==", // base64 encoded "Akcaj17768@nd"
-  phone: "1234567890",
-  zipCode: "91101",
-  language: "en",
-  completedOnboarding: true,
-  createdAt: new Date().toISOString(),
-};
-
-const users: StoredUser[] = [masterAccount];
-const pendingUsers: Map<string, PendingUser> = new Map();
-
-// Simple hash function (for demo purposes - use bcrypt in production)
 function hashPassword(password: string): string {
   return Buffer.from(password).toString("base64");
 }
@@ -46,63 +17,45 @@ function generateVerificationCode(): string {
   return Math.random().toString().slice(2, 8);
 }
 
-// In production, this would send SMS via Twilio, AWS SNS, etc
-function sendVerificationCode(phone: string, code: string): Promise<void> {
-  console.log(
-    `[SMS] Sending verification code ${code} to ${phone}`
-  );
-  // Simulate SMS delay
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve();
-    }, 500);
-  });
-}
-
 export const handleSignup: RequestHandler = async (req, res) => {
   try {
     const { username, password, phone, zipCode, language } = req.body;
 
-    // Validation
     if (!username || !password || !phone || !zipCode) {
       return res.status(400).json({ message: "Missing required fields" });
     }
-
     if (username.length < 3) {
-      return res
-        .status(400)
-        .json({ message: "Username must be at least 3 characters" });
+      return res.status(400).json({ message: "Username must be at least 3 characters" });
     }
-
     if (password.length < 8) {
-      return res
-        .status(400)
-        .json({ message: "Password must be at least 8 characters" });
+      return res.status(400).json({ message: "Password must be at least 8 characters" });
     }
 
-    // Check if username already exists
-    if (users.some((u) => u.username === username)) {
+    const supabase = getSupabase();
+
+    const { data: existing } = await supabase
+      .from("users")
+      .select("id")
+      .eq("username", username)
+      .maybeSingle();
+
+    if (existing) {
       return res.status(400).json({ message: "Username already exists" });
     }
 
-    // Generate verification code
     const verificationCode = generateVerificationCode();
     const userId = `user_${Date.now()}`;
 
-    // Store pending user
-    const pendingUser: PendingUser = {
+    await supabase.from("pending_users").insert({
       id: userId,
       username,
       password: hashPassword(password),
       phone,
-      verificationCode,
-      createdAt: new Date().toISOString(),
-    };
+      verification_code: verificationCode,
+    });
 
-    pendingUsers.set(userId, pendingUser);
-
-    // Send verification code
-    await sendVerificationCode(phone, verificationCode);
+    // No real SMS service — find the code in Cloudflare Workers logs or via `npx wrangler tail`
+    console.log(`[SMS] Verification code for ${phone}: ${verificationCode}`);
 
     res.json({
       message: "Verification code sent",
@@ -125,35 +78,42 @@ export const handleVerifyPhone: RequestHandler = async (req, res) => {
   try {
     const { userId, code, zipCode, language } = req.body;
 
-    // Validation
     if (!userId || !code) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
-    const pendingUser = pendingUsers.get(userId);
+    const supabase = getSupabase();
+
+    const { data: pendingUser } = await supabase
+      .from("pending_users")
+      .select("*")
+      .eq("id", userId)
+      .maybeSingle();
 
     if (!pendingUser) {
       return res.status(404).json({ message: "User not found" });
     }
-
-    if (pendingUser.verificationCode !== code) {
+    if (pendingUser.verification_code !== code) {
       return res.status(400).json({ message: "Invalid verification code" });
     }
 
-    // Create verified user
-    const newUser: StoredUser = {
-      id: pendingUser.id,
-      username: pendingUser.username,
-      password: pendingUser.password,
-      phone: pendingUser.phone,
-      zipCode: zipCode || "00000",
-      language: language || "en",
-      completedOnboarding: false,
-      createdAt: new Date().toISOString(),
-    };
+    const { data: newUser, error } = await supabase
+      .from("users")
+      .insert({
+        id: pendingUser.id,
+        username: pendingUser.username,
+        password: pendingUser.password,
+        phone: pendingUser.phone,
+        zip_code: zipCode || "00000",
+        language: language || "en",
+        completed_onboarding: false,
+      })
+      .select()
+      .single();
 
-    users.push(newUser);
-    pendingUsers.delete(userId);
+    if (error) throw error;
+
+    await supabase.from("pending_users").delete().eq("id", userId);
 
     res.json({
       message: "Phone verified successfully",
@@ -161,10 +121,10 @@ export const handleVerifyPhone: RequestHandler = async (req, res) => {
         id: newUser.id,
         username: newUser.username,
         phone: newUser.phone,
-        zipCode: newUser.zipCode,
+        zipCode: newUser.zip_code,
         language: newUser.language,
-        completedOnboarding: newUser.completedOnboarding,
-        createdAt: newUser.createdAt,
+        completedOnboarding: newUser.completed_onboarding,
+        createdAt: newUser.created_at,
       },
     });
   } catch (error) {
@@ -177,23 +137,30 @@ export const handleResendCode: RequestHandler = async (req, res) => {
   try {
     const { userId, phone } = req.body;
 
-    // Validation
     if (!userId) {
       return res.status(400).json({ message: "Missing userId" });
     }
 
-    const pendingUser = pendingUsers.get(userId);
+    const supabase = getSupabase();
+
+    const { data: pendingUser } = await supabase
+      .from("pending_users")
+      .select("*")
+      .eq("id", userId)
+      .maybeSingle();
 
     if (!pendingUser) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Generate new code
     const newCode = generateVerificationCode();
-    pendingUser.verificationCode = newCode;
 
-    // Send code
-    await sendVerificationCode(phone, newCode);
+    await supabase
+      .from("pending_users")
+      .update({ verification_code: newCode })
+      .eq("id", userId);
+
+    console.log(`[SMS] New verification code for ${phone}: ${newCode}`);
 
     res.json({ message: "Verification code sent" });
   } catch (error) {
@@ -206,17 +173,20 @@ export const handleLogin: RequestHandler = async (req, res) => {
   try {
     const { username, password } = req.body;
 
-    // Validation
     if (!username || !password) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
-    const user = users.find((u) => u.username === username);
+    const supabase = getSupabase();
+
+    const { data: user } = await supabase
+      .from("users")
+      .select("*")
+      .eq("username", username)
+      .maybeSingle();
 
     if (!user || user.password !== hashPassword(password)) {
-      return res
-        .status(401)
-        .json({ message: "Invalid username or password" });
+      return res.status(401).json({ message: "Invalid username or password" });
     }
 
     res.json({
@@ -225,10 +195,10 @@ export const handleLogin: RequestHandler = async (req, res) => {
         id: user.id,
         username: user.username,
         phone: user.phone,
-        zipCode: user.zipCode,
+        zipCode: user.zip_code,
         language: user.language,
-        completedOnboarding: user.completedOnboarding,
-        createdAt: user.createdAt,
+        completedOnboarding: user.completed_onboarding,
+        createdAt: user.created_at,
       },
     });
   } catch (error) {
@@ -245,13 +215,18 @@ export const handleCompleteOnboarding: RequestHandler = async (req, res) => {
       return res.status(400).json({ message: "Missing userId" });
     }
 
-    const user = users.find((u) => u.id === userId);
+    const supabase = getSupabase();
 
-    if (!user) {
+    const { data: user, error } = await supabase
+      .from("users")
+      .update({ completed_onboarding: true })
+      .eq("id", userId)
+      .select()
+      .single();
+
+    if (error || !user) {
       return res.status(404).json({ message: "User not found" });
     }
-
-    user.completedOnboarding = true;
 
     res.json({
       message: "Onboarding completed",
@@ -259,10 +234,10 @@ export const handleCompleteOnboarding: RequestHandler = async (req, res) => {
         id: user.id,
         username: user.username,
         phone: user.phone,
-        zipCode: user.zipCode,
+        zipCode: user.zip_code,
         language: user.language,
-        completedOnboarding: user.completedOnboarding,
-        createdAt: user.createdAt,
+        completedOnboarding: user.completed_onboarding,
+        createdAt: user.created_at,
       },
     });
   } catch (error) {

@@ -1,0 +1,14 @@
+{
+  "name": "fusion-starter",
+  "compatibility_date": "2026-02-17",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "worker.ts",
+  "assets": {
+    "directory": "./dist/spa",
+    "binding": "ASSETS"
+  },
+  "vars": {
+    "SUPABASE_URL": "",
+    "SUPABASE_ANON_KEY": ""
+  }
+}
