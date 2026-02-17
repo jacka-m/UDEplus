@@ -126,7 +126,7 @@ export default function Onboarding() {
               <div className="mb-8">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-sm font-semibold text-gray-600">
-                    {t("onboarding.title")}
+                    UDE+
                   </h3>
                   <span className="text-sm text-gray-500">
                     {currentStep + 1} / {steps.length}
