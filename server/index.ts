@@ -14,6 +14,7 @@ import {
   handleGetUserOrders,
   handleGetOrderStats,
   handleExportAllData,
+    handleDeleteOrder,
 } from "./routes/orders";
 
 export function createServer(opts?: { skipBodyParsing?: boolean }) {
@@ -51,6 +52,7 @@ export function createServer(opts?: { skipBodyParsing?: boolean }) {
   app.get("/api/users/:userId/orders", handleGetUserOrders);
   app.get("/api/users/:userId/stats", handleGetOrderStats);
   app.get("/api/orders/export", handleExportAllData);
+  app.delete("/api/orders/:orderId", handleDeleteOrder);
 
   // Sessions routes
   app.post("/api/sessions", (req, res) => {

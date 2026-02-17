@@ -3,6 +3,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useSession } from "@/context/SessionContext";
 import { Plus, AlertCircle } from "lucide-react";
 import { OrderData } from "@shared/types";
+import { mlModel } from "@/utils/mlModel";
 
 interface ManualOrderFormProps {
   onAddOrder: (order: OrderData) => void;
@@ -129,13 +130,27 @@ export default function ManualOrderForm({ onAddOrder, sessionDate }: ManualOrder
       }),
       // AI score will be calculated and added later in ManualSessionCreator
       score: {
-        score: 0, // Placeholder, will be calculated
-        recommendation: "decline" as const, // Placeholder, will be calculated
+        score: 0, // Placeholder, may be replaced below
+        recommendation: "decline" as const,
         timestamp: new Date().toISOString(),
       },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
+
+    // Load any saved model and score the order immediately so it shows in UI during creation
+    try {
+      mlModel.loadModel();
+      const computed = mlModel.scoreOrder(order);
+      order.score = {
+        score: computed,
+        recommendation: computed >= 7.5 ? "take" : "decline",
+        timestamp: new Date().toISOString(),
+      };
+    } catch (e) {
+      // If scoring fails, leave placeholder and log
+      console.error("Order scoring failed:", e);
+    }
 
     onAddOrder(order);
 

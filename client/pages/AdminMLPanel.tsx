@@ -64,6 +64,8 @@ export default function AdminMLPanel() {
   const [filterUser, setFilterUser] = useState<string>("all");
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
+  const [orderToDelete, setOrderToDelete] = useState<OrderData | null>(null);
+  const [isDeletingOrder, setIsDeletingOrder] = useState(false);
 
   const handleResetData = async () => {
     setIsResetting(true);
@@ -211,6 +213,31 @@ export default function AdminMLPanel() {
       const orders = ordersManager.getAllOrders();
       const dedupedOrders = deduplicateOrders(orders);
       setAllOrders(dedupedOrders);
+    }
+  };
+
+  const confirmDeleteOrder = (order: OrderData) => {
+    setOrderToDelete(order);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!orderToDelete) return;
+    setIsDeletingOrder(true);
+    try {
+      const res = await fetch(`/api/orders/${orderToDelete.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        throw new Error("Delete failed");
+      }
+
+      // Remove from UI state
+      setAllOrders((prev) => prev.filter((o) => o.id !== orderToDelete.id));
+      toast({ title: "Order deleted", description: "Order removed successfully", variant: "default" });
+      setOrderToDelete(null);
+    } catch (error) {
+      console.error("Failed to delete order:", error);
+      toast({ title: "Delete failed", description: "Could not delete order", variant: "destructive" });
+    } finally {
+      setIsDeletingOrder(false);
     }
   };
 
@@ -829,6 +856,7 @@ export default function AdminMLPanel() {
                     <th className="px-6 py-4 text-right font-bold text-white whitespace-nowrap">Stops</th>
                     <th className="px-6 py-4 text-right font-bold text-white whitespace-nowrap">Time</th>
                     <th className="px-6 py-4 text-center font-bold text-white whitespace-nowrap">Recommendation</th>
+                    <th className="px-6 py-4 text-center font-bold text-white whitespace-nowrap">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -897,6 +925,15 @@ export default function AdminMLPanel() {
                             {order.score.recommendation === "take" ? "✓ Take" : "✗ Decline"}
                           </span>
                         </td>
+                        <td className="px-6 py-4 text-center">
+                          <button
+                            onClick={() => confirmDeleteOrder(order)}
+                            title="Delete order"
+                            className="text-red-600 hover:text-red-800 transition"
+                          >
+                            <Trash2 className="w-5 h-5 mx-auto" />
+                          </button>
+                        </td>
                       </tr>
                     ))
                   ) : (
@@ -925,6 +962,17 @@ export default function AdminMLPanel() {
           onConfirm={handleResetData}
           onCancel={() => setShowResetConfirm(false)}
           isLoading={isResetting}
+          isDangerous
+        />
+        <ConfirmModal
+          isOpen={!!orderToDelete}
+          title="Delete Order?"
+          description={`Permanently delete order ${orderToDelete?.id || ""}. This cannot be undone.`}
+          confirmText="Delete"
+          cancelText="Cancel"
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setOrderToDelete(null)}
+          isLoading={isDeletingOrder}
           isDangerous
         />
       </div>

@@ -217,3 +217,26 @@ export const handleExportAllData: RequestHandler = async (req, res) => {
     res.status(500).json({ message: "Failed to export data" });
   }
 };
+
+// Delete a single order by id (admin use)
+export const handleDeleteOrder: RequestHandler = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+
+    if (!orderId) {
+      return res.status(400).json({ message: "Missing orderId" });
+    }
+
+    const supabase = getSupabase();
+
+    const { error } = await supabase.from("orders").delete().eq("id", orderId);
+    if (error) throw error;
+
+    console.log(`Order deleted: ${orderId}`);
+
+    res.json({ message: "Order deleted", orderId });
+  } catch (error) {
+    console.error("Delete order error:", error);
+    res.status(500).json({ message: "Failed to delete order" });
+  }
+};

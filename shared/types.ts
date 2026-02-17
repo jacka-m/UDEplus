@@ -59,6 +59,8 @@ export interface OrderData {
   timeOfDay: string;
   createdAt: string;
   updatedAt: string;
+  // Optional username (augmented by server export for admin views)
+  username?: string;
 }
 
 export interface DrivingSession {
