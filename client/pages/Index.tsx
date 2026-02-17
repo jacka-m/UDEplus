@@ -194,22 +194,20 @@ export default function Index() {
             <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
               Welcome to UDE+
             </h1>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               {user && (
                 <>
-                  <span className="text-sm text-gray-600">
-                    {user.username}
-                  </span>
                   <button
                     onClick={() => navigate("/profile")}
-                    className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 transition"
-                    title="Profile"
+                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-50 to-blue-50 text-gray-700 hover:from-purple-100 hover:to-blue-100 border border-purple-200 rounded-lg font-semibold transition"
+                    title="Account"
                   >
                     <User className="w-4 h-4" />
+                    Account
                   </button>
                   <button
                     onClick={handleLogout}
-                    className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 transition"
+                    className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-red-600 transition"
                     title="Sign out"
                   >
                     <LogOut className="w-4 h-4" />

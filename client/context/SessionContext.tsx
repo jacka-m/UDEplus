@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { DrivingSession, OrderData } from "@shared/types";
+import { ordersManager } from "@/utils/ordersManager";
 
 interface SessionContextType {
   session: DrivingSession | null;
@@ -109,6 +110,9 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     };
 
     setSession(updatedSession);
+
+    // Save session and orders to persistent storage
+    ordersManager.saveSessionOrders(updatedSession, orders);
 
     // Save session to backend
     try {
