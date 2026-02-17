@@ -1,8 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { X, ChevronRight, Loader2, LogOut } from "lucide-react";
+import { X, ChevronRight, Loader2, LogOut, Clock, DollarSign, TrendingUp, Bell } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useSession } from "@/context/SessionContext";
+import { useDelayedReminder } from "@/hooks/useDelayedReminder";
 import { OrderData } from "@shared/types";
+import { mlModel } from "@/utils/mlModel";
+import { delayedDataReminder } from "@/utils/delayedDataReminder";
 
 type FlowStep = "form" | "recommendation";
 
@@ -17,6 +21,7 @@ interface FormData {
 export default function Index() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { session, isSessionActive, endSession, addOrderToSession } = useSession();
   const [step, setStep] = useState<FlowStep>("form");
   const [formData, setFormData] = useState<FormData>({
     stops: 0,
@@ -26,26 +31,60 @@ export default function Index() {
     pickupZone: "",
   });
   const [score, setScore] = useState(0);
+  const [sessionEndLoading, setSessionEndLoading] = useState(false);
+  const [reminderOrder, setReminderOrder] = useState<OrderData | null>(null);
+  const [showReminderModal, setShowReminderModal] = useState(false);
   const timerRef = useRef<NodeJS.Timeout>();
 
+  // Setup delayed reminder hook
+  useDelayedReminder({
+    onReminder: (order) => {
+      setReminderOrder(order);
+      setShowReminderModal(true);
+    },
+  });
+
+  // Check for active session on mount
+  useEffect(() => {
+    if (!isSessionActive) {
+      navigate("/session-start");
+    }
+    mlModel.loadModel();
+
+    // Request notification permission for reminders
+    delayedDataReminder.requestNotificationPermission();
+  }, [isSessionActive, navigate]);
+
   const calculateScore = (data: FormData): 1 | 2 | 3 | 4 => {
-    // ML algorithm to calculate hourly rate score (1-4)
-    // Formula considers multiple factors
-    const hourlyRate = (data.payout / (data.estimatedTime / 60)) * 1.2; // Adjusted for 1.2x multiplier
-    const milesEfficiency = data.payout / Math.max(data.miles, 0.1);
-    const stopsBonus = Math.min(data.stops * 0.1, 0.5); // Bonus for multiple stops
-    const zoneMultiplier = data.pickupZone.toLowerCase() === "downtown" ? 1.2 : 1;
+    // Create a temporary order object for ML prediction
+    const tempOrder: OrderData = {
+      id: "temp",
+      userId: user?.id || "",
+      sessionId: session?.id || "",
+      numberOfStops: data.stops,
+      shownPayout: data.payout,
+      miles: data.miles,
+      estimatedTime: data.estimatedTime,
+      pickupZone: data.pickupZone,
+      score: {
+        score: 1,
+        recommendation: "decline",
+        timestamp: new Date().toISOString(),
+      },
+      offeredAt: new Date().toISOString(),
+      dayOfWeek: new Date().toLocaleDateString("en-US", { weekday: "long" }),
+      date: new Date().toLocaleDateString("en-US"),
+      timeOfDay: new Date().toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      }),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
 
-    // Weighted score calculation
-    const baseScore =
-      (hourlyRate * 0.5 + milesEfficiency * 0.3 + stopsBonus * 0.2) *
-      zoneMultiplier;
-
-    // Normalize to 1-4 scale
-    if (baseScore < 15) return 1;
-    if (baseScore < 20) return 2;
-    if (baseScore < 25) return 3;
-    return 4;
+    // Use ML model for prediction
+    return mlModel.predictScore(tempOrder);
   };
 
   const handleFormSubmit = () => {
@@ -65,7 +104,7 @@ export default function Index() {
   };
 
   const handleTookOffer = () => {
-    if (!user) return;
+    if (!user || !session) return;
 
     const now = new Date();
     const dayOfWeek = now.toLocaleDateString("en-US", { weekday: "long" });
@@ -80,6 +119,7 @@ export default function Index() {
     const orderData: OrderData = {
       id: `order_${Date.now()}`,
       userId: user.id,
+      sessionId: session.id,
       numberOfStops: formData.stops,
       shownPayout: formData.payout,
       miles: formData.miles,
@@ -99,6 +139,9 @@ export default function Index() {
       updatedAt: now.toISOString(),
     };
 
+    // Add to session
+    addOrderToSession(orderData);
+
     // Navigate to order pickup page with order data
     navigate("/order-pickup", { state: { orderData } });
   };
@@ -114,6 +157,26 @@ export default function Index() {
     });
   };
 
+  const handleEndSession = async () => {
+    if (!session) return;
+
+    if (
+      confirm(
+        `End your driving session? You've completed ${session.totalOrders} orders.`
+      )
+    ) {
+      setSessionEndLoading(true);
+      try {
+        await endSession();
+        // Redirect to session end summary
+        navigate("/session-end", { state: { session } });
+      } catch (error) {
+        console.error("Failed to end session:", error);
+        setSessionEndLoading(false);
+      }
+    }
+  };
+
   const handleLogout = () => {
     if (confirm("Are you sure you want to sign out?")) {
       logout();
@@ -125,26 +188,56 @@ export default function Index() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-blue-50">
       {/* Modern header */}
       <div className="border-b border-gray-200 bg-white/60 backdrop-blur-sm sticky top-0 z-40">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-            Welcome to UDE+
-          </h1>
-          <div className="flex items-center gap-3">
-            {user && (
-              <>
-                <span className="text-sm text-gray-600">
-                  {user.username}
-                </span>
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 transition"
-                  title="Sign out"
-                >
-                  <LogOut className="w-4 h-4" />
-                </button>
-              </>
-            )}
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between mb-3">
+            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+              Welcome to UDE+
+            </h1>
+            <div className="flex items-center gap-3">
+              {user && (
+                <>
+                  <span className="text-sm text-gray-600">
+                    {user.username}
+                  </span>
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 transition"
+                    title="Sign out"
+                  >
+                    <LogOut className="w-4 h-4" />
+                  </button>
+                </>
+              )}
+            </div>
           </div>
+
+          {/* Session Info Bar */}
+          {session && isSessionActive && (
+            <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-3 flex items-center justify-between text-sm">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-1.5 text-gray-700">
+                  <TrendingUp className="w-4 h-4 text-purple-600" />
+                  <span className="font-semibold">{session.totalOrders}</span>
+                  <span>orders</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-gray-700">
+                  <DollarSign className="w-4 h-4 text-green-600" />
+                  <span className="font-semibold">${session.totalEarnings.toFixed(2)}</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-gray-700">
+                  <Clock className="w-4 h-4 text-blue-600" />
+                  <span>{session.totalHours.toFixed(1)}h</span>
+                </div>
+              </div>
+              <button
+                onClick={handleEndSession}
+                disabled={sessionEndLoading}
+                className="px-3 py-1 bg-red-100 text-red-700 rounded-md text-xs font-semibold hover:bg-red-200 transition disabled:opacity-50"
+              >
+                {sessionEndLoading ? "Ending..." : "End Session"}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -354,6 +447,72 @@ export default function Index() {
           </div>
         )}
 
+        {/* Delayed Data Reminder Modal */}
+        {showReminderModal && reminderOrder && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center px-4 z-50">
+            <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 space-y-6">
+              {/* Icon */}
+              <div className="flex justify-center">
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                  <Bell className="w-6 h-6 text-blue-600" />
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="text-center space-y-2">
+                <h3 className="text-xl font-bold text-gray-900">
+                  Time for Final Details
+                </h3>
+                <p className="text-gray-600 text-sm">
+                  It's been 2 hours since you completed this order. Help us finalize
+                  the record by adding the pickup location and actual payout.
+                </p>
+              </div>
+
+              {/* Order Info */}
+              <div className="bg-gray-50 rounded-lg p-4 text-sm space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Estimated Payout:</span>
+                  <span className="font-semibold">
+                    ${reminderOrder.shownPayout.toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Order ID:</span>
+                  <span className="font-mono text-xs text-gray-500">
+                    {reminderOrder.id.substring(0, 12)}...
+                  </span>
+                </div>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    navigate("/post-order-survey-delayed", {
+                      state: { orderData: reminderOrder },
+                    });
+                    setShowReminderModal(false);
+                  }}
+                  className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition"
+                >
+                  Add Final Details
+                </button>
+                <button
+                  onClick={() => setShowReminderModal(false)}
+                  className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition"
+                >
+                  Later
+                </button>
+              </div>
+
+              {/* Info */}
+              <p className="text-xs text-gray-500 text-center">
+                This data helps train our ML model
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

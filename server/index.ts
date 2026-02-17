@@ -39,9 +39,16 @@ export function createServer() {
 
   // Orders routes
   app.post("/api/orders", handleCreateOrder);
+  app.post("/api/orders/immediate", handleCreateOrder); // Same handler for immediate partial orders
+  app.post("/api/orders/delayed", handleCreateOrder); // Same handler for delayed complete orders
   app.get("/api/users/:userId/orders", handleGetUserOrders);
   app.get("/api/users/:userId/stats", handleGetOrderStats);
   app.get("/api/orders/export", handleExportAllData);
+
+  // Sessions routes (placeholder for session persistence)
+  app.post("/api/sessions", (_req, res) => {
+    res.json({ message: "Session saved" });
+  });
 
   return app;
 }

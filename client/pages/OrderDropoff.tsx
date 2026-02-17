@@ -27,7 +27,7 @@ export default function OrderDropoff() {
 
   const handleDropoffComplete = () => {
     const now = new Date();
-    
+
     // Calculate actual time taken
     const startTime = new Date(orderData.acceptedAt || now);
     const actualTime = Math.round((now.getTime() - startTime.getTime()) / 60000); // minutes
@@ -38,7 +38,7 @@ export default function OrderDropoff() {
       actualTotalTime: actualTime,
     };
 
-    navigate("/post-order-survey", { state: { orderData: updatedOrder } });
+    navigate("/post-order-survey-immediate", { state: { orderData: updatedOrder } });
   };
 
   return (
