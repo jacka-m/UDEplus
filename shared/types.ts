@@ -1,5 +1,5 @@
 export interface OrderScore {
-  score: 1 | 2 | 3 | 4;
+  score: number; // 1-10 scale: 1-2.5=poor, 2.5-5=not good, 5-7.5=acceptable, 7.5-10=great
   recommendation: "take" | "decline";
   timestamp: string;
 }

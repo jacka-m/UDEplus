@@ -57,7 +57,7 @@ export default function Index() {
     delayedDataReminder.requestNotificationPermission();
   }, [isSessionActive, navigate]);
 
-  const calculateScore = (data: FormData): 1 | 2 | 3 | 4 => {
+  const calculateScore = (data: FormData): number => {
     // Create a temporary order object for ML prediction
     const tempOrder: OrderData = {
       id: "temp",
@@ -128,8 +128,8 @@ export default function Index() {
       estimatedTime: formData.estimatedTime,
       pickupZone: formData.pickupZone,
       score: {
-        score: score as 1 | 2 | 3 | 4,
-        recommendation: score <= 2 ? "decline" : "take",
+        score: score,
+        recommendation: score <= 5 ? "decline" : "take",
         timestamp: now.toISOString(),
       },
       offeredAt: now.toISOString(),

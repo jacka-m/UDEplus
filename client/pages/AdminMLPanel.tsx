@@ -9,6 +9,9 @@ import {
   Settings,
   Lock,
   User,
+  TrendingUp,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import { ordersManager } from "@/utils/ordersManager";
 import { DrivingSession, OrderData } from "@shared/types";
@@ -26,7 +29,7 @@ export default function AdminMLPanel() {
   const { user, logout } = useAuth();
   const { t } = useLanguage();
   const [isAuthorized, setIsAuthorized] = useState(false);
-  const [activeTab, setActiveTab] = useState<"metrics" | "settings">("metrics");
+  const [activeTab, setActiveTab] = useState<"metrics" | "settings" | "explorer">("metrics");
   const [metrics, setMetrics] = useState({
     totalUsers: 1,
     totalSessions: 0,
@@ -45,6 +48,88 @@ export default function AdminMLPanel() {
   });
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
+  const [allOrders, setAllOrders] = useState<OrderData[]>([]);
+  const [filteredOrders, setFilteredOrders] = useState<OrderData[]>([]);
+  const [sortBy, setSortBy] = useState<"date" | "score" | "earnings">("date");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [filterScore, setFilterScore] = useState<"all" | "poor" | "notgood" | "acceptable" | "great">("all");
+  const [filterDateRange, setFilterDateRange] = useState<{ start: string; end: string }>({
+    start: "",
+    end: "",
+  });
+
+  // Helper functions for scoring
+  const getScoreBand = (score: number): string => {
+    if (score <= 2.5) return "poor";
+    if (score <= 5) return "notgood";
+    if (score <= 7.5) return "acceptable";
+    return "great";
+  };
+
+  const getScoreColor = (score: number): string => {
+    const band = getScoreBand(score);
+    switch (band) {
+      case "poor":
+        return "bg-red-100 text-red-900 border-red-200";
+      case "notgood":
+        return "bg-orange-100 text-orange-900 border-orange-200";
+      case "acceptable":
+        return "bg-blue-100 text-blue-900 border-blue-200";
+      case "great":
+        return "bg-green-100 text-green-900 border-green-200";
+      default:
+        return "bg-gray-100 text-gray-900 border-gray-200";
+    }
+  };
+
+  const getScoreLabel = (score: number): string => {
+    const band = getScoreBand(score);
+    switch (band) {
+      case "poor":
+        return "Poor (1-2.5)";
+      case "notgood":
+        return "Not Good (2.5-5)";
+      case "acceptable":
+        return "Acceptable (5-7.5)";
+      case "great":
+        return "Great (7.5-10)";
+      default:
+        return `${score.toFixed(1)}/10`;
+    }
+  };
+
+  // Apply filters and sorting
+  const applyFiltersAndSort = (orders: OrderData[]) => {
+    let filtered = [...orders];
+
+    // Filter by score band
+    if (filterScore !== "all") {
+      filtered = filtered.filter((order) => getScoreBand(order.score.score) === filterScore);
+    }
+
+    // Filter by date range
+    if (filterDateRange.start) {
+      filtered = filtered.filter((order) => order.date >= filterDateRange.start);
+    }
+    if (filterDateRange.end) {
+      filtered = filtered.filter((order) => order.date <= filterDateRange.end);
+    }
+
+    // Sort
+    filtered.sort((a, b) => {
+      let comparison = 0;
+      if (sortBy === "date") {
+        comparison = new Date(a.date).getTime() - new Date(b.date).getTime();
+      } else if (sortBy === "score") {
+        comparison = a.score.score - b.score.score;
+      } else if (sortBy === "earnings") {
+        comparison = (a.actualPay || a.shownPayout) - (b.actualPay || b.shownPayout);
+      }
+      return sortOrder === "asc" ? comparison : -comparison;
+    });
+
+    setFilteredOrders(filtered);
+  };
 
   useEffect(() => {
     // Check if user is the admin account
@@ -52,10 +137,25 @@ export default function AdminMLPanel() {
       setIsAuthorized(true);
       loadMetrics();
       loadMLSettings();
+      loadOrders();
     } else {
       setIsAuthorized(false);
     }
   }, [user]);
+
+  // Apply filters whenever they change
+  useEffect(() => {
+    applyFiltersAndSort(allOrders);
+  }, [sortBy, sortOrder, filterScore, filterDateRange, allOrders]);
+
+  const loadOrders = () => {
+    try {
+      const orders = ordersManager.getAllOrders();
+      setAllOrders(orders);
+    } catch (error) {
+      console.error("Failed to load orders:", error);
+    }
+  };
 
   const loadMetrics = () => {
     try {
@@ -227,7 +327,7 @@ export default function AdminMLPanel() {
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Tab Navigation */}
-        <div className="flex gap-4 mb-8">
+        <div className="flex gap-4 mb-8 flex-wrap">
           <button
             onClick={() => setActiveTab("metrics")}
             className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition ${
@@ -249,6 +349,17 @@ export default function AdminMLPanel() {
           >
             <Settings className="w-5 h-5" />
             Model Settings
+          </button>
+          <button
+            onClick={() => setActiveTab("explorer")}
+            className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition ${
+              activeTab === "explorer"
+                ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white"
+                : "bg-white text-gray-700 border border-gray-200 hover:border-gray-300"
+            }`}
+          >
+            <TrendingUp className="w-5 h-5" />
+            Data Explorer
           </button>
         </div>
 
@@ -494,6 +605,212 @@ export default function AdminMLPanel() {
               >
                 {isSaving ? "Saving..." : "Save Settings"}
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Data Explorer Tab */}
+        {activeTab === "explorer" && (
+          <div className="bg-white rounded-2xl shadow-lg p-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">
+              Data Explorer & Analytics
+            </h2>
+
+            {/* Analytics Summary */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
+                <p className="text-xs text-blue-600 font-semibold mb-1">Total Orders</p>
+                <p className="text-2xl font-bold text-blue-900">{allOrders.length}</p>
+              </div>
+              <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-lg p-4 border border-red-200">
+                <p className="text-xs text-red-600 font-semibold mb-1">Poor Scores</p>
+                <p className="text-2xl font-bold text-red-900">
+                  {allOrders.filter((o) => getScoreBand(o.score.score) === "poor").length}
+                </p>
+              </div>
+              <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-4 border border-orange-200">
+                <p className="text-xs text-orange-600 font-semibold mb-1">Total Earnings</p>
+                <p className="text-2xl font-bold text-orange-900">
+                  ${allOrders.reduce((sum, o) => sum + (o.actualPay || o.shownPayout || 0), 0).toFixed(2)}
+                </p>
+              </div>
+              <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border border-green-200">
+                <p className="text-xs text-green-600 font-semibold mb-1">Avg Score</p>
+                <p className="text-2xl font-bold text-green-900">
+                  {allOrders.length > 0
+                    ? (
+                        allOrders.reduce((sum, o) => sum + o.score.score, 0) /
+                        allOrders.length
+                      ).toFixed(1)
+                    : "—"}
+                </p>
+              </div>
+            </div>
+
+            {/* Filters */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 bg-gray-50 rounded-lg p-6 border border-gray-200">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Score Band
+                </label>
+                <select
+                  value={filterScore}
+                  onChange={(e) =>
+                    setFilterScore(
+                      e.target.value as "all" | "poor" | "notgood" | "acceptable" | "great"
+                    )
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="all">All Scores</option>
+                  <option value="poor">Poor (1-2.5)</option>
+                  <option value="notgood">Not Good (2.5-5)</option>
+                  <option value="acceptable">Acceptable (5-7.5)</option>
+                  <option value="great">Great (7.5-10)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Start Date
+                </label>
+                <input
+                  type="date"
+                  value={filterDateRange.start}
+                  onChange={(e) =>
+                    setFilterDateRange({ ...filterDateRange, start: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  End Date
+                </label>
+                <input
+                  type="date"
+                  value={filterDateRange.end}
+                  onChange={(e) =>
+                    setFilterDateRange({ ...filterDateRange, end: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Sort By
+                </label>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as "date" | "score" | "earnings")}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="date">Date</option>
+                  <option value="score">Score</option>
+                  <option value="earnings">Earnings</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Sort Order Toggle */}
+            <div className="flex items-center justify-between mb-6">
+              <p className="text-sm text-gray-600">
+                Showing {filteredOrders.length} of {allOrders.length} orders
+              </p>
+              <button
+                onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold transition"
+              >
+                {sortOrder === "asc" ? (
+                  <>
+                    <ChevronUp className="w-4 h-4" />
+                    Ascending
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="w-4 h-4" />
+                    Descending
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Orders Table */}
+            <div className="overflow-x-auto border border-gray-200 rounded-lg">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-900">Date</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-900">Score</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-900">Zone</th>
+                    <th className="px-4 py-3 text-right font-semibold text-gray-900">Payout</th>
+                    <th className="px-4 py-3 text-right font-semibold text-gray-900">Miles</th>
+                    <th className="px-4 py-3 text-right font-semibold text-gray-900">Stops</th>
+                    <th className="px-4 py-3 text-right font-semibold text-gray-900">Time (min)</th>
+                    <th className="px-4 py-3 text-center font-semibold text-gray-900">Recommend</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredOrders.length > 0 ? (
+                    filteredOrders.map((order, idx) => (
+                      <tr
+                        key={order.id}
+                        className={`border-b border-gray-200 ${
+                          idx % 2 === 0 ? "bg-white" : "bg-gray-50"
+                        } hover:bg-blue-50 transition`}
+                      >
+                        <td className="px-4 py-3 text-gray-900">
+                          {new Date(order.date).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={`px-3 py-1 rounded-lg font-semibold border text-xs ${getScoreColor(
+                              order.score.score
+                            )}`}
+                          >
+                            {order.score.score.toFixed(1)}/10
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-gray-700">{order.pickupZone}</td>
+                        <td className="px-4 py-3 text-right text-gray-900 font-semibold">
+                          ${(order.actualPay || order.shownPayout || 0).toFixed(2)}
+                        </td>
+                        <td className="px-4 py-3 text-right text-gray-700">
+                          {order.miles.toFixed(1)}
+                        </td>
+                        <td className="px-4 py-3 text-right text-gray-700">
+                          {order.numberOfStops}
+                        </td>
+                        <td className="px-4 py-3 text-right text-gray-700">
+                          {order.actualTotalTime || order.estimatedTime || 0}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <span
+                            className={`inline-block px-2 py-1 rounded font-semibold text-xs ${
+                              order.score.recommendation === "take"
+                                ? "bg-green-100 text-green-800"
+                                : "bg-red-100 text-red-800"
+                            }`}
+                          >
+                            {order.score.recommendation === "take" ? "Take" : "Decline"}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={8} className="px-4 py-8 text-center text-gray-600">
+                        No orders match the current filters
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         )}

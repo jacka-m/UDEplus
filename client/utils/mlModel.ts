@@ -70,7 +70,7 @@ class MLModel {
       .filter((o) => o.score) // Only include orders with scores
       .map((o) => ({
         features: this.extractFeatures(o),
-        label: o.score.score as 1 | 2 | 3 | 4,
+        label: o.score.score,
       }));
 
     // Calculate feature importance based on correlation with score
@@ -98,7 +98,7 @@ class MLModel {
   /**
    * Predict score for a new order using trained model
    */
-  predictScore(order: OrderData): 1 | 2 | 3 | 4 {
+  predictScore(order: OrderData): number {
     // Use trained model if available, otherwise use default algorithm
     if (this.model) {
       return this.predictWithModel(order);
@@ -123,7 +123,7 @@ class MLModel {
     return null;
   }
 
-  private predictWithModel(order: OrderData): 1 | 2 | 3 | 4 {
+  private predictWithModel(order: OrderData): number {
     if (!this.model) return this.predictWithDefaultAlgorithm(order);
 
     const features = this.extractFeatures(order);
@@ -137,14 +137,12 @@ class MLModel {
         features.timeOfDay * weights.timeOfDay * 0.1) *
       weights.pickupZoneScore;
 
-    // Convert to 1-4 scale
-    if (score < 12) return 1;
-    if (score < 18) return 2;
-    if (score < 24) return 3;
-    return 4;
+    // Convert to 1-10 scale
+    const normalizedScore = Math.min(Math.max(score / 3, 1), 10);
+    return Math.round(normalizedScore * 2) / 2; // Round to 0.5 increments
   }
 
-  private predictWithDefaultAlgorithm(order: OrderData): 1 | 2 | 3 | 4 {
+  private predictWithDefaultAlgorithm(order: OrderData): number {
     const hourlyRate = (order.shownPayout / (order.estimatedTime / 60)) * 1.2;
     const milesEfficiency = order.shownPayout / Math.max(order.miles, 0.1);
     const stopsBonus = Math.min(order.numberOfStops * 0.1, 0.5);
@@ -154,10 +152,9 @@ class MLModel {
       (hourlyRate * 0.5 + milesEfficiency * 0.3 + stopsBonus * 0.2) *
       zoneMultiplier;
 
-    if (baseScore < 15) return 1;
-    if (baseScore < 20) return 2;
-    if (baseScore < 25) return 3;
-    return 4;
+    // Convert to 1-10 scale
+    const normalizedScore = Math.min(Math.max(baseScore / 3, 1), 10);
+    return Math.round(normalizedScore * 2) / 2; // Round to 0.5 increments
   }
 
   private calculateFeatureWeights(
@@ -186,7 +183,7 @@ class MLModel {
     dataPoints: MLModelData[],
     weights: Record<string, number>
   ): number {
-    let correct = 0;
+    let totalError = 0;
 
     dataPoints.forEach((point) => {
       const predicted =
@@ -194,14 +191,15 @@ class MLModel {
         point.features.milesEfficiency * weights.milesEfficiency * 0.3 +
         point.features.stopsBonus * weights.stopsBonus * 0.2;
 
-      const predictedScore = predicted < 15 ? 1 : predicted < 20 ? 2 : predicted < 25 ? 3 : 4;
-
-      if (predictedScore === point.label) {
-        correct++;
-      }
+      const normalizedPredicted = Math.min(Math.max(predicted / 3, 1), 10);
+      const error = Math.abs(normalizedPredicted - point.label);
+      totalError += error;
     });
 
-    return (correct / dataPoints.length) * 100;
+    // Calculate accuracy as inverse of average error
+    const avgError = totalError / dataPoints.length;
+    const accuracy = Math.max(0, 100 - avgError * 10); // Normalize to 0-100 scale
+    return accuracy;
   }
 
   private getTimeOfDayScore(timeOfDay: string): number {

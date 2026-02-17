@@ -16,7 +16,7 @@ export default function Profile() {
   const [sessions, setSessions] = useState<DrivingSession[]>([]);
   const [allOrders, setAllOrders] = useState<OrderData[]>([]);
   const [expandedSessions, setExpandedSessions] = useState<Set<string>>(new Set());
-  const [filterScore, setFilterScore] = useState<"all" | 1 | 2 | 3 | 4>("all");
+  const [filterScore, setFilterScore] = useState<"all" | "poor" | "notgood" | "acceptable" | "great">("all");
   const [filterSession, setFilterSession] = useState<string>("all");
   const [editingZipCode, setEditingZipCode] = useState(false);
   const [editingLanguage, setEditingLanguage] = useState(false);
@@ -92,42 +92,49 @@ export default function Profile() {
     setExpandedSessions(newExpanded);
   };
 
+  // Helper to get score band
+  const getScoreBand = (score: number): string => {
+    if (score <= 2.5) return "poor";
+    if (score <= 5) return "notgood";
+    if (score <= 7.5) return "acceptable";
+    return "great";
+  };
+
   // Filter orders based on selected filters
   const getFilteredOrders = (sessionId: string) => {
     return allOrders.filter((order) => {
       if (order.sessionId !== sessionId) return false;
-      if (filterScore !== "all" && order.score.score !== filterScore) return false;
+      if (filterScore !== "all" && getScoreBand(order.score.score) !== filterScore) return false;
       return true;
     });
   };
 
   // Get the score color and label
-  const getScoreDisplay = (score: 1 | 2 | 3 | 4) => {
-    switch (score) {
-      case 1:
-        return {
-          color: "bg-red-100 text-red-800 border-red-300",
-          label: "Poor",
-          recommendation: "Don't Take",
-        };
-      case 2:
-        return {
-          color: "bg-yellow-100 text-yellow-800 border-yellow-300",
-          label: "Fair",
-          recommendation: "Consider",
-        };
-      case 3:
-        return {
-          color: "bg-blue-100 text-blue-800 border-blue-300",
-          label: "Good",
-          recommendation: "Take",
-        };
-      case 4:
-        return {
-          color: "bg-green-100 text-green-800 border-green-300",
-          label: "Excellent",
-          recommendation: "Take",
-        };
+  const getScoreDisplay = (score: number) => {
+    if (score <= 2.5) {
+      return {
+        color: "bg-red-100 text-red-800 border-red-300",
+        label: "Poor",
+        recommendation: "Don't Take",
+      };
+    } else if (score <= 5) {
+      return {
+        color: "bg-orange-100 text-orange-800 border-orange-300",
+        label: "Not Good",
+        recommendation: "Consider",
+      };
+    } else if (score <= 7.5) {
+      return {
+        color: "bg-blue-100 text-blue-800 border-blue-300",
+        label: "Acceptable",
+        recommendation: "Consider Taking",
+      };
+    } else {
+      return {
+        color: "bg-green-100 text-green-800 border-green-300",
+        label: "Great",
+        recommendation: "Take",
+      };
     }
   };
 
@@ -379,18 +386,16 @@ export default function Profile() {
                     value={filterScore}
                     onChange={(e) =>
                       setFilterScore(
-                        e.target.value === "all"
-                          ? "all"
-                          : (parseInt(e.target.value) as 1 | 2 | 3 | 4)
+                        e.target.value as "all" | "poor" | "notgood" | "acceptable" | "great"
                       )
                     }
                     className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-white text-gray-900"
                   >
                     <option value="all">{t('profile.allScores')}</option>
-                    <option value="1">Score 1 (Poor)</option>
-                    <option value="2">Score 2 (Fair)</option>
-                    <option value="3">Score 3 (Good)</option>
-                    <option value="4">Score 4 (Excellent)</option>
+                    <option value="poor">1-2.5 (Poor)</option>
+                    <option value="notgood">2.5-5 (Not Good)</option>
+                    <option value="acceptable">5-7.5 (Acceptable)</option>
+                    <option value="great">7.5-10 (Great)</option>
                   </select>
                 </div>
 

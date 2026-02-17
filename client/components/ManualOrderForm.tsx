@@ -18,7 +18,7 @@ export default function ManualOrderForm({ onAddOrder }: ManualOrderFormProps) {
     estimatedTime: "",
     pickupZone: "",
     dropoffZone: "",
-    score: 2,
+    score: 5,
     recommendation: "decline" as "take" | "decline",
     actualPay: "",
     actualTime: "",
@@ -75,7 +75,7 @@ export default function ManualOrderForm({ onAddOrder }: ManualOrderFormProps) {
       pickupZone: formData.pickupZone,
       dropoffZone: formData.dropoffZone || undefined,
       score: {
-        score: formData.score as 1 | 2 | 3 | 4,
+        score: formData.score,
         recommendation: formData.recommendation,
         timestamp: now.toISOString(),
       },
@@ -104,7 +104,7 @@ export default function ManualOrderForm({ onAddOrder }: ManualOrderFormProps) {
       estimatedTime: "",
       pickupZone: "",
       dropoffZone: "",
-      score: 2,
+      score: 5,
       recommendation: "decline",
       actualPay: "",
       actualTime: "",
@@ -247,17 +247,23 @@ export default function ManualOrderForm({ onAddOrder }: ManualOrderFormProps) {
         {/* AI Score */}
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-2">
-            AI Score (1-4) *
+            AI Score (1-10) *
           </label>
           <select
             value={formData.score}
             onChange={(e) => handleInputChange("score", parseInt(e.target.value))}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white transition"
           >
-            <option value="1">1 - Poor</option>
-            <option value="2">2 - Fair</option>
-            <option value="3">3 - Good</option>
-            <option value="4">4 - Excellent</option>
+            <option value="1">1.0 - Poor</option>
+            <option value="2">2.0 - Poor</option>
+            <option value="3">3.0 - Not Good</option>
+            <option value="4">4.0 - Not Good</option>
+            <option value="5">5.0 - Acceptable</option>
+            <option value="6">6.0 - Acceptable</option>
+            <option value="7">7.0 - Acceptable</option>
+            <option value="8">8.0 - Great</option>
+            <option value="9">9.0 - Great</option>
+            <option value="10">10.0 - Great</option>
           </select>
         </div>
 
