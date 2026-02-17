@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Loader2, User } from "lucide-react";
+import { Loader2, User, Clock } from "lucide-react";
 import { OrderData } from "@shared/types";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
@@ -15,6 +15,8 @@ export default function RestaurantWait() {
   const [restaurantName, setRestaurantName] = useState("");
   const [restaurantAddress, setRestaurantAddress] = useState("");
   const [dropoffZone, setDropoffZone] = useState("");
+  const [showManualInput, setShowManualInput] = useState(false);
+  const [manualMinutes, setManualMinutes] = useState("");
   const intervalRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
@@ -72,6 +74,27 @@ export default function RestaurantWait() {
     navigate("/order-dropoff", { state: { orderData: updatedOrder } });
   };
 
+  const handleManualTimeSubmit = () => {
+    if (!manualMinutes || isNaN(parseInt(manualMinutes))) {
+      return;
+    }
+
+    if (intervalRef.current) clearInterval(intervalRef.current);
+
+    const waitTime = parseInt(manualMinutes);
+    const updatedOrder: OrderData = {
+      ...orderData!,
+      pickupSiteName: restaurantName || orderData!.pickupSiteName,
+      pickupSiteAddress: restaurantAddress || orderData!.pickupSiteAddress,
+      dropoffZone: dropoffZone || orderData!.dropoffZone,
+      waitEndTime: new Date().toISOString(),
+      waitTimeAtRestaurant: waitTime,
+      actualStartTime: new Date().toISOString(),
+    };
+
+    navigate("/order-dropoff", { state: { orderData: updatedOrder } });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-blue-50">
       {/* Header */}
@@ -102,6 +125,16 @@ export default function RestaurantWait() {
                 {formatTime(seconds)}
               </div>
               <p className="text-gray-600">Time waiting at restaurant</p>
+
+              {/* Manual Time Button - Small and Translucent */}
+              <button
+                onClick={() => setShowManualInput(true)}
+                className="mt-3 text-xs text-gray-400 hover:text-gray-500 opacity-50 hover:opacity-75 transition px-2 py-1 rounded border border-gray-300 border-dashed hover:border-gray-400"
+                title="Add wait time manually"
+              >
+                <Clock className="w-3 h-3 inline mr-1" />
+                Add wait time manually
+              </button>
             </div>
 
             {/* Restaurant Info Form */}
@@ -165,6 +198,53 @@ export default function RestaurantWait() {
           </div>
         </div>
       </div>
+
+      {/* Manual Wait Time Modal */}
+      {showManualInput && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center px-4 z-50">
+          <div className="w-full max-w-sm bg-white rounded-xl shadow-xl p-6 space-y-4">
+            <h3 className="text-lg font-bold text-gray-900">Add Wait Time Manually</h3>
+            <p className="text-sm text-gray-600">
+              Enter the number of minutes you waited at the restaurant
+            </p>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Minutes Waited
+              </label>
+              <input
+                type="number"
+                min="0"
+                max="480"
+                value={manualMinutes}
+                onChange={(e) => setManualMinutes(e.target.value)}
+                placeholder="e.g., 15"
+                autoFocus
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowManualInput(false);
+                  setManualMinutes("");
+                }}
+                className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleManualTimeSubmit}
+                disabled={!manualMinutes || isNaN(parseInt(manualMinutes))}
+                className="flex-1 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-semibold hover:shadow-lg transition disabled:opacity-50"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

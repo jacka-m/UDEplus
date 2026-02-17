@@ -174,7 +174,9 @@ export default function Profile() {
                 <h2 className="text-3xl font-bold text-gray-900">
                   {user?.username}
                 </h2>
-                <p className="text-gray-600">{t('profile.driverProfile')}</p>
+                <p className="text-gray-600">
+                  {user?.username === "jack_am" ? "UDE+ Founder, Admin" : t('profile.driverProfile')}
+                </p>
               </div>
             </div>
           </div>
