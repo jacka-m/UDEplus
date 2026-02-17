@@ -47,6 +47,8 @@ export default function VerifyPhone() {
         body: JSON.stringify({
           userId: userObj.id,
           code: code,
+          zipCode: userObj.zipCode,
+          language: userObj.language,
         }),
       });
 

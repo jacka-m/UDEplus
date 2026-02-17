@@ -4,6 +4,9 @@ export interface User {
   id: string;
   username: string;
   phone: string;
+  zipCode: string;
+  language: string; // e.g., "en", "es", "fr"
+  completedOnboarding: boolean;
   createdAt: string;
 }
 

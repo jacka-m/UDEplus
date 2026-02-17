@@ -7,6 +7,7 @@ import {
   handleVerifyPhone,
   handleResendCode,
   handleLogin,
+  handleCompleteOnboarding,
 } from "./routes/auth";
 import {
   handleCreateOrder,
@@ -36,6 +37,7 @@ export function createServer() {
   app.post("/api/auth/verify-phone", handleVerifyPhone);
   app.post("/api/auth/resend-code", handleResendCode);
   app.post("/api/auth/login", handleLogin);
+  app.post("/api/auth/complete-onboarding", handleCompleteOnboarding);
 
   // Orders routes
   app.post("/api/orders", handleCreateOrder);

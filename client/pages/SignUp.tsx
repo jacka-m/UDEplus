@@ -1,15 +1,27 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { ChevronRight, AlertCircle } from "lucide-react";
+
+const languages = [
+  { code: "en", name: "English" },
+  { code: "es", name: "Español" },
+  { code: "fr", name: "Français" },
+  { code: "pt", name: "Português" },
+  { code: "zh", name: "中文" },
+];
 
 export default function SignUp() {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { t } = useLanguage();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [phone, setPhone] = useState("");
+  const [zipCode, setZipCode] = useState("");
+  const [language, setLanguage] = useState("en");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -18,28 +30,38 @@ export default function SignUp() {
     return phoneRegex.test(phoneNumber.replace(/\s/g, ""));
   };
 
+  const validateZipCode = (zip: string) => {
+    const zipRegex = /^\d{5}(-\d{4})?$/;
+    return zipRegex.test(zip.replace(/\s/g, ""));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
     // Validation
     if (!username || username.length < 3) {
-      setError("Username must be at least 3 characters");
+      setError(t("error.usernameTooShort"));
       return;
     }
 
     if (!password || password.length < 8) {
-      setError("Password must be at least 8 characters");
+      setError(t("error.passwordTooShort"));
       return;
     }
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
+      setError(t("error.passwordMismatch"));
       return;
     }
 
     if (!validatePhone(phone)) {
-      setError("Please enter a valid phone number");
+      setError(t("error.phoneInvalid"));
+      return;
+    }
+
+    if (!validateZipCode(zipCode)) {
+      setError(t("error.zipCodeInvalid"));
       return;
     }
 
@@ -54,12 +76,14 @@ export default function SignUp() {
           username,
           password,
           phone: phone.replace(/\D/g, ""),
+          zipCode: zipCode.replace(/\D/g, ""),
+          language,
         }),
       });
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.message || "Sign up failed");
+        throw new Error(data.message || t("error.signupFailed"));
       }
 
       const data = await response.json();
@@ -88,8 +112,8 @@ export default function SignUp() {
         <div className="w-full max-w-md">
           <div className="bg-white rounded-2xl shadow-lg p-8 space-y-6">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">Create Account</h2>
-              <p className="text-gray-600 mt-2">Join UDE+ to start analyzing orders</p>
+              <h2 className="text-2xl font-bold text-gray-900">{t("auth.createAccount")}</h2>
+              <p className="text-gray-600 mt-2">{t("auth.joinUDE")}</p>
             </div>
 
             {error && (
@@ -100,6 +124,24 @@ export default function SignUp() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Language Selection */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  {t("auth.language")}
+                </label>
+                <select
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value)}
+                  disabled={loading}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-50 transition disabled:opacity-50"
+                >
+                  {languages.map((lang) => (
+                    <option key={lang.code} value={lang.code}>
+                      {lang.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Username
@@ -144,18 +186,35 @@ export default function SignUp() {
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Phone Number
+                  {t("auth.phone")}
                 </label>
                 <input
                   type="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  placeholder="(555) 123-4567"
+                  placeholder={t("auth.phoneFormat")}
                   disabled={loading}
                   className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-50 transition disabled:opacity-50"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   We'll send a verification code to this number
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  {t("auth.zipCode")}
+                </label>
+                <input
+                  type="text"
+                  value={zipCode}
+                  onChange={(e) => setZipCode(e.target.value)}
+                  placeholder="12345"
+                  disabled={loading}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-50 transition disabled:opacity-50"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  {t("auth.zipCodeHelp")}
                 </p>
               </div>
 

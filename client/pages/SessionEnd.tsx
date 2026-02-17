@@ -2,11 +2,14 @@ import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { CheckCircle, Clock, DollarSign, TrendingUp } from "lucide-react";
 import { DrivingSession } from "@shared/types";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function SessionEnd() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useLanguage();
   const [session, setSession] = useState<DrivingSession | null>(null);
+  const [timeGreeting, setTimeGreeting] = useState("");
 
   useEffect(() => {
     const state = location.state as { session?: DrivingSession };
@@ -15,7 +18,25 @@ export default function SessionEnd() {
       return;
     }
     setSession(state.session);
-  }, [location, navigate]);
+
+    // Determine greeting based on current time
+    const now = new Date();
+    const hour = now.getHours();
+
+    if (hour >= 19 || hour < 4) {
+      // 7 PM - 4 AM
+      setTimeGreeting(t("sessionEnd.haveGreatNight"));
+    } else if (hour >= 4 && hour < 12) {
+      // 4:01 AM - 11:45 AM
+      setTimeGreeting(t("sessionEnd.haveGreatMorning"));
+    } else if (hour >= 12 && hour < 16) {
+      // 11:46 AM - 4:30 PM (adjusted to match roughly 12-4:30)
+      setTimeGreeting(t("sessionEnd.haveGreatAfternoon"));
+    } else {
+      // 4:31 PM - 6:59 PM
+      setTimeGreeting(t("sessionEnd.haveGreatEvening"));
+    }
+  }, [location, navigate, t]);
 
   const handleContinue = () => {
     navigate("/");
@@ -46,7 +67,7 @@ export default function SessionEnd() {
                 <CheckCircle className="w-16 h-16 text-green-500" />
               </div>
               <h2 className="text-2xl font-bold text-gray-900">
-                Great Job!
+                {timeGreeting}
               </h2>
               <p className="text-gray-600 mt-2">
                 Your driving session has ended

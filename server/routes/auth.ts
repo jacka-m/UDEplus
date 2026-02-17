@@ -6,6 +6,9 @@ interface StoredUser {
   username: string;
   password: string;
   phone: string;
+  zipCode: string;
+  language: string;
+  completedOnboarding: boolean;
   verificationCode?: string;
   createdAt: string;
 }
@@ -46,10 +49,10 @@ function sendVerificationCode(phone: string, code: string): Promise<void> {
 
 export const handleSignup: RequestHandler = async (req, res) => {
   try {
-    const { username, password, phone } = req.body;
+    const { username, password, phone, zipCode, language } = req.body;
 
     // Validation
-    if (!username || !password || !phone) {
+    if (!username || !password || !phone || !zipCode) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
@@ -95,6 +98,9 @@ export const handleSignup: RequestHandler = async (req, res) => {
         id: userId,
         username,
         phone,
+        zipCode,
+        language: language || "en",
+        completedOnboarding: false,
       },
     });
   } catch (error) {
@@ -105,7 +111,7 @@ export const handleSignup: RequestHandler = async (req, res) => {
 
 export const handleVerifyPhone: RequestHandler = async (req, res) => {
   try {
-    const { userId, code } = req.body;
+    const { userId, code, zipCode, language } = req.body;
 
     // Validation
     if (!userId || !code) {
@@ -128,6 +134,9 @@ export const handleVerifyPhone: RequestHandler = async (req, res) => {
       username: pendingUser.username,
       password: pendingUser.password,
       phone: pendingUser.phone,
+      zipCode: zipCode || "00000",
+      language: language || "en",
+      completedOnboarding: false,
       createdAt: new Date().toISOString(),
     };
 
@@ -140,6 +149,9 @@ export const handleVerifyPhone: RequestHandler = async (req, res) => {
         id: newUser.id,
         username: newUser.username,
         phone: newUser.phone,
+        zipCode: newUser.zipCode,
+        language: newUser.language,
+        completedOnboarding: newUser.completedOnboarding,
         createdAt: newUser.createdAt,
       },
     });
@@ -201,11 +213,48 @@ export const handleLogin: RequestHandler = async (req, res) => {
         id: user.id,
         username: user.username,
         phone: user.phone,
+        zipCode: user.zipCode,
+        language: user.language,
+        completedOnboarding: user.completedOnboarding,
         createdAt: user.createdAt,
       },
     });
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({ message: "Login failed" });
+  }
+};
+
+export const handleCompleteOnboarding: RequestHandler = async (req, res) => {
+  try {
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ message: "Missing userId" });
+    }
+
+    const user = users.find((u) => u.id === userId);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    user.completedOnboarding = true;
+
+    res.json({
+      message: "Onboarding completed",
+      user: {
+        id: user.id,
+        username: user.username,
+        phone: user.phone,
+        zipCode: user.zipCode,
+        language: user.language,
+        completedOnboarding: user.completedOnboarding,
+        createdAt: user.createdAt,
+      },
+    });
+  } catch (error) {
+    console.error("Complete onboarding error:", error);
+    res.status(500).json({ message: "Failed to complete onboarding" });
   }
 };
