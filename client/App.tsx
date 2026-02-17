@@ -22,6 +22,7 @@ import OrderDropoff from "./pages/OrderDropoff";
 import PostOrderSurveyImmediate from "./pages/PostOrderSurveyImmediate";
 import PostOrderSurveyDelayed from "./pages/PostOrderSurveyDelayed";
 import SessionEnd from "./pages/SessionEnd";
+import AdminMLPanel from "./pages/AdminMLPanel";
 
 const queryClient = new QueryClient();
 
@@ -83,6 +84,15 @@ const App = () => (
                   element={
                     <ProtectedRoute>
                       <Profile />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/admin/ml-panel"
+                  element={
+                    <ProtectedRoute>
+                      <AdminMLPanel />
                     </ProtectedRoute>
                   }
                 />

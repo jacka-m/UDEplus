@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { LogOut, MapPin, DollarSign, Globe, ChevronDown, Filter } from "lucide-react";
+import { LogOut, MapPin, DollarSign, Globe, ChevronDown, Filter, Lock } from "lucide-react";
 import { getMinimumWageByZip, getCostOfLivingFactor } from "@/utils/minimumWage";
 import { ordersManager } from "@/utils/ordersManager";
 import { OrderData, DrivingSession } from "@shared/types";
@@ -300,6 +300,31 @@ export default function Profile() {
               </p>
             </div>
           </div>
+
+          {/* Admin Panel Access (for jack_am) */}
+          {user?.username === "jack_am" && (
+            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-6 border-2 border-indigo-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Lock className="w-6 h-6 text-indigo-600" />
+                  <div>
+                    <h3 className="font-semibold text-indigo-900">
+                      Admin ML/Data Panel
+                    </h3>
+                    <p className="text-sm text-indigo-700">
+                      Access ML metrics, model settings, and system configuration
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => navigate("/admin/ml-panel")}
+                  className="px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-semibold hover:shadow-lg transition"
+                >
+                  Open Admin Panel
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Minimum Wage Information */}
           <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-6 space-y-4">

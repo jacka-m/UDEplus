@@ -93,5 +93,41 @@ export function createServer() {
     }
   });
 
+  // Admin ML Settings Route
+  app.post("/api/admin/ml-settings", (req, res) => {
+    try {
+      const { username, settings, timestamp } = req.body;
+
+      // Verify this is the admin user
+      if (username !== "jack_am") {
+        return res.status(403).json({
+          message: "Unauthorized access to ML settings",
+          success: false,
+        });
+      }
+
+      // Log the settings update
+      console.log(
+        `ML Settings updated by ${username} at ${timestamp}`,
+        settings
+      );
+
+      // In a production system, save to a database
+      // For now, we log it and return success
+      res.json({
+        message: "ML settings saved successfully",
+        success: true,
+        settings,
+      });
+    } catch (error) {
+      console.error("ML settings error:", error);
+      res.status(500).json({
+        message: "Failed to save ML settings",
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  });
+
   return app;
 }

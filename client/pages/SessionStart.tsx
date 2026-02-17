@@ -40,7 +40,7 @@ export default function SessionStart() {
   };
 
   const handleLogout = () => {
-    if (confirm("Are you sure you want to sign out?")) {
+    if (confirm(t('order.areYouSure'))) {
       logout();
       navigate("/login");
     }
@@ -52,7 +52,7 @@ export default function SessionStart() {
       <div className="border-b border-gray-200 bg-white/60 backdrop-blur-sm sticky top-0 z-40">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-            UDE+
+            {t('nav.ude')}
           </h1>
           <div className="flex items-center gap-2">
             {user && (
@@ -60,15 +60,15 @@ export default function SessionStart() {
                 <button
                   onClick={() => navigate("/profile")}
                   className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-50 to-blue-50 text-gray-700 hover:from-purple-100 hover:to-blue-100 border border-purple-200 rounded-lg font-semibold transition"
-                  title="Account"
+                  title={t('order.account')}
                 >
                   <User className="w-4 h-4" />
-                  Account
+                  {t('order.account')}
                 </button>
                 <button
                   onClick={handleLogout}
                   className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-red-600 transition"
-                  title="Sign out"
+                  title={t('nav.signOut')}
                 >
                   <LogOut className="w-4 h-4" />
                 </button>
@@ -89,10 +89,10 @@ export default function SessionStart() {
                 </div>
               </div>
               <h2 className="text-2xl font-bold text-gray-900">
-                Ready to Drive?
+                {t('session.startDriving')}
               </h2>
               <p className="text-gray-600">
-                Start a driving session to begin analyzing and tracking your orders
+                {t('session.startSubtitle')}
               </p>
             </div>
 
@@ -108,35 +108,35 @@ export default function SessionStart() {
             <div className="space-y-3 bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg p-6">
               <h3 className="font-semibold text-gray-900 flex items-center gap-2">
                 <TrendingUp className="w-5 h-5 text-purple-600" />
-                What happens in a session:
+                {t('session.sessionBenefits')}
               </h3>
               <ul className="space-y-2 text-sm text-gray-700">
                 <li className="flex gap-2">
                   <span className="text-purple-600 font-bold">1.</span>
-                  <span>Get AI-powered scores for each order before you accept</span>
+                  <span>{t('session.benefit1')}</span>
                 </li>
                 <li className="flex gap-2">
                   <span className="text-purple-600 font-bold">2.</span>
-                  <span>Track quick metrics right after each dropoff</span>
+                  <span>{t('session.benefit2')}</span>
                 </li>
                 <li className="flex gap-2">
                   <span className="text-purple-600 font-bold">3.</span>
-                  <span>Receive a reminder 2 hours after you finish for final details</span>
+                  <span>{t('session.benefit3')}</span>
                 </li>
                 <li className="flex gap-2">
                   <span className="text-purple-600 font-bold">4.</span>
-                  <span>Your data trains our ML model to improve predictions</span>
+                  <span>{t('session.benefit4')}</span>
                 </li>
               </ul>
             </div>
 
             {/* Session Info */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-700">
-              <p className="font-semibold mb-2">💡 Pro Tips:</p>
+              <p className="font-semibold mb-2">💡 {t('session.tips')}</p>
               <ul className="space-y-1 text-xs">
-                <li>• You can end your session anytime</li>
-                <li>• Quick feedback keeps data fresh and accurate</li>
-                <li>• Final payout data helps calibrate our model</li>
+                <li>• {t('session.tip1')}</li>
+                <li>• {t('session.tip2')}</li>
+                <li>• {t('session.tip3')}</li>
               </ul>
             </div>
 
@@ -147,12 +147,12 @@ export default function SessionStart() {
               className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-4 rounded-lg font-semibold flex items-center justify-center gap-2 hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Play className="w-5 h-5" />
-              {loading ? "Starting Session..." : "Start a Driving Session!"}
+              {loading ? t('session.startingSession') : t('session.startButton')}
             </button>
 
             {/* Info Footer */}
             <p className="text-center text-xs text-gray-500">
-              Your session will track all orders and metrics until you end it
+              {t('session.sessionDescription')}
             </p>
           </div>
         </div>
