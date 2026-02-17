@@ -265,6 +265,14 @@ class MLModel {
   }
 
   /**
+   * Score an order for manual session creation
+   * This combines all relevant features into a final 1-10 score
+   */
+  scoreOrder(order: OrderData): number {
+    return this.predictScore(order);
+  }
+
+  /**
    * Get current model info
    */
   getModelInfo(): TrainedModel | null {
@@ -280,5 +288,6 @@ class MLModel {
   }
 }
 
-// Export singleton instance
+// Export class and singleton instance
+export { MLModel };
 export const mlModel = new MLModel();

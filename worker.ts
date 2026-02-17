@@ -12,8 +12,15 @@ export default {
       return handleExpressRequest(request, app, env);
     }
 
-    // Serve static SPA assets
-    return env.ASSETS.fetch(request);
+    // Try to fetch the requested asset
+    const response = await env.ASSETS.fetch(request);
+    
+    // If 404 (not found), serve index.html for SPA routing fallback
+    if (response.status === 404) {
+      return env.ASSETS.fetch(new Request(new URL("/index.html", request.url), request));
+    }
+    
+    return response;
   },
 };
 

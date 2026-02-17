@@ -475,76 +475,208 @@ export default function Profile() {
                             return (
                               <div
                                 key={order.id}
-                                className="px-6 py-4 hover:bg-gray-50 transition"
+                                className="px-6 py-6 hover:bg-gray-50 transition"
                               >
-                                <div className="flex items-start justify-between mb-3">
+                                {/* Header with Order Number and Score */}
+                                <div className="flex items-start justify-between mb-4">
                                   <div>
-                                    <p className="text-sm text-gray-500">
-                                      Order {idx + 1}
+                                    <p className="text-sm text-gray-500">Order {idx + 1}</p>
+                                    <p className="font-semibold text-lg text-gray-900">
+                                      {order.restaurantName || "Unknown Restaurant"}
                                     </p>
-                                    <p className="font-semibold text-gray-900">
-                                      {order.pickupZone}
-                                      {order.dropoffZone &&
-                                        ` → ${order.dropoffZone}`}
-                                    </p>
+                                    {order.restaurantAddress && (
+                                      <p className="text-sm text-gray-600">
+                                        📍 {order.restaurantAddress}
+                                      </p>
+                                    )}
                                   </div>
                                   <div
-                                    className={`px-3 py-1 rounded-full font-semibold text-sm border ${scoreDisplay.color}`}
+                                    className={`px-4 py-2 rounded-full font-bold text-sm border whitespace-nowrap ${scoreDisplay.color}`}
                                   >
-                                    Score {order.score.score}
+                                    {order.score.score.toFixed(1)}/10
                                   </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-3">
+                                {/* Financial & Distance Summary */}
+                                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4 pb-4 border-b">
                                   <div>
-                                    <p className="text-xs text-gray-500 mb-1">
-                                      Payout
-                                    </p>
-                                    <p className="font-semibold text-gray-900">
+                                    <p className="text-xs text-gray-500 mb-1">Shown Payout</p>
+                                    <p className="font-bold text-gray-900">
                                       ${order.shownPayout.toFixed(2)}
                                     </p>
                                   </div>
+                                  {order.actualPay && (
+                                    <div>
+                                      <p className="text-xs text-gray-500 mb-1">Actual Payout</p>
+                                      <p className="font-bold text-green-700">
+                                        ${order.actualPay.toFixed(2)}
+                                      </p>
+                                    </div>
+                                  )}
                                   <div>
-                                    <p className="text-xs text-gray-500 mb-1">
-                                      Miles
-                                    </p>
-                                    <p className="font-semibold text-gray-900">
-                                      {order.miles}
+                                    <p className="text-xs text-gray-500 mb-1">Miles</p>
+                                    <p className="font-bold text-gray-900">
+                                      {order.miles.toFixed(1)} mi
                                     </p>
                                   </div>
                                   <div>
-                                    <p className="text-xs text-gray-500 mb-1">
-                                      Est. Time
-                                    </p>
-                                    <p className="font-semibold text-gray-900">
-                                      {order.estimatedTime}m
+                                    <p className="text-xs text-gray-500 mb-1">Est. Time</p>
+                                    <p className="font-bold text-gray-900">
+                                      {order.estimatedTime} min
                                     </p>
                                   </div>
+                                  {order.actualTotalTime && (
+                                    <div>
+                                      <p className="text-xs text-gray-500 mb-1">Actual Time</p>
+                                      <p className="font-bold text-gray-900">
+                                        {order.actualTotalTime} min
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Location & Stops */}
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4 pb-4 border-b">
                                   <div>
-                                    <p className="text-xs text-gray-500 mb-1">
-                                      Stops
-                                    </p>
+                                    <p className="text-xs text-gray-500 mb-1">Pickup Zone</p>
                                     <p className="font-semibold text-gray-900">
+                                      {order.pickupZone}
+                                    </p>
+                                  </div>
+                                  {order.dropoffZone && (
+                                    <div>
+                                      <p className="text-xs text-gray-500 mb-1">Dropoff Zone</p>
+                                      <p className="font-semibold text-gray-900">
+                                        {order.dropoffZone}
+                                      </p>
+                                    </div>
+                                  )}
+                                  <div>
+                                    <p className="text-xs text-gray-500 mb-1">Number of Stops</p>
+                                    <p className="font-bold text-gray-900">
                                       {order.numberOfStops}
                                     </p>
                                   </div>
+                                  {order.waitTimeAtRestaurant && (
+                                    <div>
+                                      <p className="text-xs text-gray-500 mb-1">Wait Time</p>
+                                      <p className="font-semibold text-gray-900">
+                                        {order.waitTimeAtRestaurant} min
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Experience Ratings (1-3 scale) */}
+                                <div className="grid grid-cols-3 gap-3 mb-4 pb-4 border-b">
                                   <div>
-                                    <p className="text-xs text-gray-500 mb-1">
-                                      Status
-                                    </p>
-                                    <p className="font-semibold text-gray-900">
-                                      {order.actualEndTime
-                                        ? "Completed"
-                                        : "Accepted"}
-                                    </p>
+                                    <p className="text-xs text-gray-500 mb-1">Parking</p>
+                                    <div className="flex items-center gap-1">
+                                      <span className="font-bold text-gray-900">
+                                        {order.parkingDifficulty || '—'}/3
+                                      </span>
+                                      <span className="text-xs">
+                                        {order.parkingDifficulty === 1
+                                          ? '🚗❌'
+                                          : order.parkingDifficulty === 2
+                                          ? '🅿️'
+                                          : '🅿️✓'}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <p className="text-xs text-gray-500 mb-1">Dropoff</p>
+                                    <div className="flex items-center gap-1">
+                                      <span className="font-bold text-gray-900">
+                                        {order.dropoffDifficulty || '—'}/3
+                                      </span>
+                                      <span className="text-xs">
+                                        {order.dropoffDifficulty === 1
+                                          ? '❌'
+                                          : order.dropoffDifficulty === 2
+                                          ? '⚠️'
+                                          : '✓'}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <p className="text-xs text-gray-500 mb-1">Zone Quality</p>
+                                    <div className="flex items-center gap-1">
+                                      <span className="font-bold text-gray-900">
+                                        {order.endZoneQuality || '—'}/3
+                                      </span>
+                                      <span className="text-xs">
+                                        {order.endZoneQuality === 1
+                                          ? '😞'
+                                          : order.endZoneQuality === 2
+                                          ? '😐'
+                                          : '😊'}
+                                      </span>
+                                    </div>
                                   </div>
                                 </div>
 
+                                {/* Multi-Stop Metrics (only show if stops > 1) */}
+                                {order.numberOfStops > 1 && (
+                                  <div className="grid grid-cols-3 gap-3 mb-4 pb-4 border-b bg-blue-50 rounded-lg p-3">
+                                    <div>
+                                      <p className="text-xs text-gray-600 font-semibold mb-1">
+                                        Route Cohesion
+                                      </p>
+                                      <div className="text-center">
+                                        <span className="text-lg font-bold text-blue-700">
+                                          {order.routeCohesion || '—'}/5
+                                        </span>
+                                        <p className="text-xs text-gray-600">
+                                          {order.routeCohesion && order.routeCohesion <= 2
+                                            ? 'Chaotic'
+                                            : order.routeCohesion === 5
+                                            ? 'Perfect'
+                                            : 'Fair'}
+                                        </p>
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs text-gray-600 font-semibold mb-1">
+                                        Compression
+                                      </p>
+                                      <div className="text-center">
+                                        <span className="text-lg font-bold text-blue-700">
+                                          {order.dropoffCompression || '—'}/5
+                                        </span>
+                                        <p className="text-xs text-gray-600">
+                                          {order.dropoffCompression && order.dropoffCompression <= 2
+                                            ? 'Spread'
+                                            : order.dropoffCompression === 5
+                                            ? 'Tight'
+                                            : 'Moderate'}
+                                        </p>
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs text-gray-600 font-semibold mb-1">
+                                        Next Momentum
+                                      </p>
+                                      <div className="text-center">
+                                        <span className="text-lg font-bold text-blue-700">
+                                          {order.nextOrderMomentum || '—'}/5
+                                        </span>
+                                        <p className="text-xs text-gray-600">
+                                          {order.nextOrderMomentum && order.nextOrderMomentum <= 2
+                                            ? 'Dead'
+                                            : order.nextOrderMomentum === 5
+                                            ? 'Hot'
+                                            : 'Fair'}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+
                                 {/* Recommendation Banner */}
-                                <div
-                                  className={`px-3 py-2 rounded-lg text-sm font-semibold ${scoreDisplay.color}`}
-                                >
-                                  Recommendation: {scoreDisplay.recommendation}
+                                <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm ${scoreDisplay.color}`}>
+                                  {scoreDisplay.recommendation === "Take" ? "✓" : "✗"}{" "}
+                                  {scoreDisplay.recommendation}
                                 </div>
                               </div>
                             );

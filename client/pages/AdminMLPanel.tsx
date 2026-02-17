@@ -61,6 +61,7 @@ export default function AdminMLPanel() {
     start: "",
     end: "",
   });
+  const [filterUser, setFilterUser] = useState<string>("all");
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
 
@@ -132,6 +133,11 @@ export default function AdminMLPanel() {
   const filteredOrdersMemo = useMemo(() => {
     let filtered = [...allOrders];
 
+    // Filter by user
+    if (filterUser !== "all") {
+      filtered = filtered.filter((order) => order.userId === filterUser);
+    }
+
     // Filter by score band
     if (filterScore !== "all") {
       filtered = filtered.filter((order) => getScoreBand(order.score.score) === filterScore);
@@ -159,7 +165,7 @@ export default function AdminMLPanel() {
     });
 
     return filtered;
-  }, [allOrders, filterScore, filterDateRange, sortBy, sortOrder]);
+  }, [allOrders, filterUser, filterScore, filterDateRange, sortBy, sortOrder]);
 
   // Update filteredOrders whenever the memoized value changes
   useEffect(() => {
@@ -716,6 +722,24 @@ export default function AdminMLPanel() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 bg-gray-50 rounded-lg p-6 border border-gray-200">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  User
+                </label>
+                <select
+                  value={filterUser}
+                  onChange={(e) => setFilterUser(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="all">All Users</option>
+                  {Array.from(new Set(allOrders.map((o) => o.userId))).map((userId) => (
+                    <option key={userId} value={userId}>
+                      {userId}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Score Band
                 </label>
                 <select
@@ -762,21 +786,6 @@ export default function AdminMLPanel() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500"
                 />
               </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Sort By
-                </label>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as "date" | "score" | "earnings")}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500"
-                >
-                  <option value="date">Date</option>
-                  <option value="score">Score</option>
-                  <option value="earnings">Earnings</option>
-                </select>
-              </div>
             </div>
 
             {/* Sort Order Toggle */}
@@ -807,9 +816,10 @@ export default function AdminMLPanel() {
               <table className="w-full text-base">
                 <thead className="bg-gradient-to-r from-purple-600 to-blue-600 text-white sticky top-0 z-10">
                   <tr>
+                    <th className="px-6 py-4 text-left font-bold text-white">User</th>
                     <th className="px-6 py-4 text-left font-bold text-white">Date</th>
                     <th className="px-6 py-4 text-left font-bold text-white">Score</th>
-                    <th className="px-6 py-4 text-left font-bold text-white">Zone</th>
+                    <th className="px-6 py-4 text-left font-bold text-white">Restaurant</th>
                     <th className="px-6 py-4 text-right font-bold text-white">Payout</th>
                     <th className="px-6 py-4 text-right font-bold text-white">Miles</th>
                     <th className="px-6 py-4 text-right font-bold text-white">Stops</th>
@@ -826,6 +836,9 @@ export default function AdminMLPanel() {
                           idx % 2 === 0 ? "bg-white" : "bg-gray-50"
                         } hover:bg-blue-50`}
                       >
+                        <td className="px-6 py-4 text-sm text-gray-700 font-medium max-w-xs truncate">
+                          {order.userId}
+                        </td>
                         <td className="px-6 py-4">
                           <div className="flex flex-col items-center gap-0.5 min-w-fit">
                             <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">
@@ -854,8 +867,8 @@ export default function AdminMLPanel() {
                             {order.score.score.toFixed(1)}/10
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-gray-900 font-medium max-w-xs truncate" title={order.pickupZone}>
-                          {order.pickupZone}
+                        <td className="px-6 py-4 text-gray-900 font-medium max-w-xs truncate" title={order.restaurantName || order.pickupZone}>
+                          {order.restaurantName || order.pickupZone || "N/A"}
                         </td>
                         <td className="px-6 py-4 text-right text-gray-900 font-bold text-lg">
                           ${(order.actualPay || order.shownPayout || 0).toFixed(2)}
@@ -884,7 +897,7 @@ export default function AdminMLPanel() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={8} className="px-6 py-12 text-center text-gray-500 text-base">
+                      <td colSpan={9} className="px-6 py-12 text-center text-gray-500 text-base">
                         <div className="flex flex-col items-center gap-2">
                           <div className="text-4xl">📊</div>
                           <p>No orders match the current filters</p>

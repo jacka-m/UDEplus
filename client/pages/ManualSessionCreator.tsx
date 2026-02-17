@@ -7,6 +7,7 @@ import { ChevronLeft, Plus, Trash2, CheckCircle } from "lucide-react";
 import { OrderData, DrivingSession } from "@shared/types";
 import ManualOrderForm from "@/components/ManualOrderForm";
 import SessionDetailsForm from "@/components/SessionDetailsForm";
+import { MLModel } from "@/utils/mlModel";
 
 export default function ManualSessionCreator() {
   const navigate = useNavigate();
@@ -44,12 +45,26 @@ export default function ManualSessionCreator() {
         `${sessionDetails.endTime}T${sessionDetails.endTimeInput}`
       );
 
-      // Calculate session stats
-      const totalEarnings = orders.reduce(
+      // Apply ML scoring to all orders
+      const mlModel = new MLModel();
+      const ordersWithScores = orders.map((order) => {
+        const score = mlModel.scoreOrder(order);
+        return {
+          ...order,
+          score: {
+            score,
+            recommendation: score >= 7.5 ? "take" : "decline",
+            timestamp: new Date().toISOString(),
+          },
+        };
+      });
+
+      // Calculate session stats using scored orders
+      const totalEarnings = ordersWithScores.reduce(
         (sum, o) => sum + (o.actualPay || o.shownPayout),
         0
       );
-      const totalMinutes = orders.reduce(
+      const totalMinutes = ordersWithScores.reduce(
         (sum, o) => sum + (o.actualTotalTime || o.estimatedTime || 0),
         0
       );
@@ -61,13 +76,13 @@ export default function ManualSessionCreator() {
         startTime: startDateTime.toISOString(),
         endTime: endDateTime.toISOString(),
         status: "ended",
-        orderIds: orders.map((o) => o.id),
-        totalOrders: orders.length,
+        orderIds: ordersWithScores.map((o) => o.id),
+        totalOrders: ordersWithScores.length,
         totalEarnings,
         totalHours,
         averageScore:
-          orders.length > 0
-            ? orders.reduce((sum, o) => sum + o.score.score, 0) / orders.length
+          ordersWithScores.length > 0
+            ? ordersWithScores.reduce((sum, o) => sum + o.score.score, 0) / ordersWithScores.length
             : 0,
         delayedDataCollected: true,
         createdAt: new Date().toISOString(),
@@ -86,7 +101,7 @@ export default function ManualSessionCreator() {
       }
 
       // Save all orders to backend in parallel using Promise.allSettled
-      const orderPromises = orders.map((order) =>
+      const orderPromises = ordersWithScores.map((order) =>
         fetch("/api/orders", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -115,7 +130,7 @@ export default function ManualSessionCreator() {
       const allOrders: OrderData[] = existingOrders ? JSON.parse(existingOrders) : [];
       localStorage.setItem(
         "ude_all_orders",
-        JSON.stringify([...allOrders, ...orders])
+        JSON.stringify([...allOrders, ...ordersWithScores])
       );
 
       setSuccessMessage("Session created successfully!");
@@ -214,11 +229,12 @@ export default function ManualSessionCreator() {
                 Add Orders to Session
               </h2>
               <p className="text-gray-600 mb-6">
-                Add all orders from this driving session. Each order should include
-                the analysis score, payout, distance, and time.
+                Add all orders from this driving session. Include location, payout,
+                distance, time, and your experience ratings. AI scoring will be
+                calculated automatically before submission.
               </p>
 
-              <ManualOrderForm onAddOrder={handleAddOrder} />
+              <ManualOrderForm onAddOrder={handleAddOrder} sessionDate={sessionDetails.startTime} />
             </div>
 
             {/* Orders List */}
@@ -279,6 +295,15 @@ export default function ManualSessionCreator() {
           <div className="bg-white rounded-2xl shadow-lg p-8 space-y-6">
             <h2 className="text-2xl font-bold text-gray-900">Review Session</h2>
 
+            {/* AI Scoring Notice */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-sm text-blue-700">
+                <span className="font-semibold">🤖 AI Scoring:</span> During submission, AI scores and
+                recommendations will be calculated for each order based on your entered data and the model's
+                analysis.
+              </p>
+            </div>
+
             {/* Session Summary */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="bg-blue-50 rounded-lg p-4">
@@ -303,12 +328,10 @@ export default function ManualSessionCreator() {
               </div>
               <div className="bg-orange-50 rounded-lg p-4">
                 <p className="text-sm text-orange-600 font-semibold mb-1">
-                  Avg Score
+                  Total Stops
                 </p>
                 <p className="text-3xl font-bold text-orange-900">
-                  {(
-                    orders.reduce((sum, o) => sum + o.score.score, 0) / orders.length
-                  ).toFixed(1)}
+                  {orders.reduce((sum, o) => sum + o.numberOfStops, 0)}
                 </p>
               </div>
             </div>
@@ -335,21 +358,49 @@ export default function ManualSessionCreator() {
             {/* Orders Summary */}
             <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
               <h3 className="font-semibold text-gray-900 mb-4">
-                Orders Summary
+                Orders Summary ({orders.length})
               </h3>
-              <div className="max-h-64 overflow-y-auto space-y-2">
+              <div className="max-h-96 overflow-y-auto space-y-3">
                 {orders.map((order, idx) => (
                   <div
                     key={idx}
-                    className="text-sm p-3 bg-white rounded border border-gray-200"
+                    className="text-sm p-4 bg-white rounded border border-gray-200 space-y-2"
                   >
-                    <p className="font-semibold text-gray-900">
-                      Order {idx + 1}: ${order.shownPayout.toFixed(2)}
-                    </p>
-                    <p className="text-gray-600 text-xs">
-                      {order.pickupZone} → {order.dropoffZone || "N/A"} | {order.miles}
-                      mi | {order.estimatedTime}min | Score: {order.score.score}
-                    </p>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-semibold text-gray-900">
+                          Order {idx + 1}: {order.restaurantName}
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          {order.pickupZone} → {order.dropoffZone || "N/A"} | {order.miles} mi |
+                          {order.numberOfStops} stops
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-green-600">
+                          ${(order.actualPay || order.shownPayout).toFixed(2)}
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          {order.estimatedTime} min
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-xs text-gray-600 pt-2 border-t border-gray-100">
+                      {order.restaurantAddress && <p>📍 {order.restaurantAddress}</p>}
+                      {order.waitTimeAtRestaurant && (
+                        <p>⏱️ Wait: {order.waitTimeAtRestaurant} min</p>
+                      )}
+                      <p>
+                        🅿️ Parking: {order.parkingDifficulty}/3 | 📦 Dropoff:{" "}
+                        {order.dropoffDifficulty}/3 | 🏘️ Zone: {order.endZoneQuality}/3
+                      </p>
+                      {order.numberOfStops > 1 && (
+                        <p>
+                          🛣️ Route: {order.routeCohesion}/5 | 📍 Compression:{" "}
+                          {order.dropoffCompression}/5 | ⚡ Momentum: {order.nextOrderMomentum}/5
+                        </p>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -368,7 +419,7 @@ export default function ManualSessionCreator() {
                 disabled={isSubmitting}
                 className="flex-1 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-semibold hover:shadow-lg transition disabled:opacity-50"
               >
-                {isSubmitting ? "Saving..." : "Save Session"}
+                {isSubmitting ? "Saving..." : "Save Session & Calculate Scores"}
               </button>
             </div>
           </div>
