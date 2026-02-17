@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { X, ChevronRight, Loader2, LogOut, Clock, DollarSign, TrendingUp, Bell, User } from "lucide-react";
+import { X, ChevronRight, Loader2, LogOut, Clock, DollarSign, TrendingUp, Bell, User, AlertCircle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useSession } from "@/context/SessionContext";
 import { useLanguage } from "@/context/LanguageContext";
@@ -9,6 +9,8 @@ import { OrderData } from "@shared/types";
 import { mlModel } from "@/utils/mlModel";
 import { delayedDataReminder } from "@/utils/delayedDataReminder";
 import { ConfirmModal } from "@/components/ConfirmModal";
+import { validateOrderData, getValidationErrorMessage } from "@/utils/dataValidation";
+import { toast } from "@/hooks/use-toast";
 
 type FlowStep = "form" | "recommendation";
 
@@ -74,30 +76,42 @@ export default function Index() {
 
     if (data.stops === 0) {
       errors.stops = t('error.pickupZoneRequired') || "Please enter number of stops";
-    } else if (data.stops > 20) {
-      errors.stops = "Maximum 20 stops allowed";
+    } else if (data.stops > 100) {
+      errors.stops = "Maximum 100 stops allowed";
     }
 
     if (data.payout === 0) {
       errors.payout = "Payout must be greater than 0";
-    } else if (data.payout > 2500) {
-      errors.payout = "Payout exceeds maximum";
     }
 
     if (data.miles === 0) {
       errors.miles = "Miles must be greater than 0";
-    } else if (data.miles > 999) {
-      errors.miles = "Miles exceeds maximum";
     }
 
     if (data.estimatedTime === 0) {
       errors.estimatedTime = "Time must be greater than 0 minutes";
-    } else if (data.estimatedTime > 480) {
-      errors.estimatedTime = "Time exceeds 8 hours";
     }
 
     if (!data.pickupZone.trim()) {
       errors.pickupZone = "Please enter a pickup zone";
+    }
+
+    // Validate against data boundaries
+    const validationErrors = validateOrderData({
+      payout: data.payout,
+      miles: data.miles,
+      estimatedTime: data.estimatedTime,
+      numberOfStops: data.stops,
+    });
+
+    if (validationErrors.length > 0) {
+      const errorMsg = getValidationErrorMessage(validationErrors);
+      toast({
+        title: "Data Validation Error",
+        description: errorMsg,
+        variant: "destructive",
+      });
+      return errors;
     }
 
     return errors;

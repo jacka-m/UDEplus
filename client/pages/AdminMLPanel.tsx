@@ -12,9 +12,13 @@ import {
   TrendingUp,
   ChevronUp,
   ChevronDown,
+  Trash2,
 } from "lucide-react";
 import { ordersManager } from "@/utils/ordersManager";
 import { DrivingSession, OrderData } from "@shared/types";
+import { resetAllData, getDataResetSummary } from "@/utils/dataReset";
+import { ConfirmModal } from "@/components/ConfirmModal";
+import { toast } from "@/hooks/use-toast";
 
 interface MLSettings {
   enableAutoScaling: boolean;
@@ -57,6 +61,32 @@ export default function AdminMLPanel() {
     start: "",
     end: "",
   });
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+
+  const handleResetData = async () => {
+    setIsResetting(true);
+    try {
+      resetAllData();
+      toast({
+        title: "Data Reset Complete",
+        description: "All sessions and orders have been cleared. Ready for fresh launch!",
+        variant: "default",
+      });
+      // Reload page to reflect changes
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (error) {
+      console.error("Failed to reset data:", error);
+      toast({
+        title: "Reset Failed",
+        description: "There was an error resetting the data.",
+        variant: "destructive",
+      });
+      setIsResetting(false);
+    }
+  };
 
   // Helper functions for scoring
   const getScoreBand = (score: number): string => {
@@ -603,6 +633,25 @@ export default function AdminMLPanel() {
               >
                 {isSaving ? "Saving..." : "Save Settings"}
               </button>
+
+              {/* Reset Data Section */}
+              <div className="border-t border-gray-200 pt-6 mt-6">
+                <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Trash2 className="w-5 h-5 text-red-600" />
+                    <h3 className="font-semibold text-red-900">Reset All Data</h3>
+                  </div>
+                  <p className="text-sm text-red-700 mb-4">
+                    Clear all sessions and orders for a fresh start. This action cannot be undone.
+                  </p>
+                  <button
+                    onClick={() => setShowResetConfirm(true)}
+                    className="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-lg font-semibold transition"
+                  >
+                    Reset All Data for Launch
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -759,12 +808,24 @@ export default function AdminMLPanel() {
                           idx % 2 === 0 ? "bg-white" : "bg-gray-50"
                         } hover:bg-blue-50`}
                       >
-                        <td className="px-6 py-4 text-gray-900 font-medium">
-                          {new Date(order.date).toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          })}
+                        <td className="px-6 py-4">
+                          <div className="flex flex-col items-center gap-0.5 min-w-fit">
+                            <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                              {new Date(order.date).toLocaleDateString("en-US", {
+                                month: "short",
+                              })}
+                            </div>
+                            <div className="text-2xl font-bold text-gray-900">
+                              {new Date(order.date).toLocaleDateString("en-US", {
+                                day: "numeric",
+                              })}
+                            </div>
+                            <div className="text-xs text-gray-600">
+                              {new Date(order.date).toLocaleDateString("en-US", {
+                                year: "2-digit",
+                              })}
+                            </div>
+                          </div>
                         </td>
                         <td className="px-6 py-4">
                           <span
@@ -818,6 +879,19 @@ export default function AdminMLPanel() {
             </div>
           </div>
         )}
+
+        {/* Reset Data Confirmation Modal */}
+        <ConfirmModal
+          isOpen={showResetConfirm}
+          title="Reset All Data?"
+          description="This will permanently delete all sessions and orders. This action cannot be undone."
+          confirmText="Reset Data"
+          cancelText="Cancel"
+          onConfirm={handleResetData}
+          onCancel={() => setShowResetConfirm(false)}
+          isLoading={isResetting}
+          isDangerous
+        />
       </div>
     </div>
   );
