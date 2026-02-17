@@ -259,14 +259,18 @@ export default function Index() {
                 </label>
                 <input
                   type="number"
-                  min="0"
+                  min="1"
+                  max="20"
                   value={formData.stops || ""}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      stops: parseInt(e.target.value) || 0,
-                    })
-                  }
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value) || 0;
+                    if (value <= 20) {
+                      setFormData({
+                        ...formData,
+                        stops: value,
+                      });
+                    }
+                  }}
                   placeholder={t('order.enterNumberOfStops')}
                   className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-50 transition"
                 />
@@ -281,14 +285,18 @@ export default function Index() {
                   <input
                     type="number"
                     min="0"
+                    max="2500"
                     step="0.01"
                     value={formData.payout || ""}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        payout: parseFloat(e.target.value) || 0,
-                      })
-                    }
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value) || 0;
+                      if (value <= 2500) {
+                        setFormData({
+                          ...formData,
+                          payout: value,
+                        });
+                      }
+                    }}
                     placeholder="0.00"
                     className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-50 transition"
                   />
@@ -302,14 +310,18 @@ export default function Index() {
                 <input
                   type="number"
                   min="0"
+                  max="999"
                   step="0.1"
                   value={formData.miles || ""}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      miles: parseFloat(e.target.value) || 0,
-                    })
-                  }
+                  onChange={(e) => {
+                    const value = parseFloat(e.target.value) || 0;
+                    if (value <= 999) {
+                      setFormData({
+                        ...formData,
+                        miles: value,
+                      });
+                    }
+                  }}
                   placeholder={t('order.enterMiles')}
                   className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-50 transition"
                 />
@@ -321,14 +333,18 @@ export default function Index() {
                 </label>
                 <input
                   type="number"
-                  min="0"
+                  min="1"
+                  max="480"
                   value={formData.estimatedTime || ""}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      estimatedTime: parseInt(e.target.value) || 0,
-                    })
-                  }
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value) || 0;
+                    if (value <= 480) {
+                      setFormData({
+                        ...formData,
+                        estimatedTime: value,
+                      });
+                    }
+                  }}
                   placeholder={t('order.enterMinutes')}
                   className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-50 transition"
                 />

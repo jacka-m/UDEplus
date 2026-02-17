@@ -129,12 +129,26 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const addOrderToSession = (order: OrderData) => {
     if (!session) return;
 
-    setOrders((prev) => [...prev, order]);
+    const updatedOrders = [...orders, order];
+    setOrders(updatedOrders);
+
+    // Calculate updated stats
+    const totalEarnings = updatedOrders.reduce(
+      (sum, o) => sum + (o.actualPay || o.shownPayout),
+      0
+    );
+    const totalMinutes = updatedOrders.reduce(
+      (sum, o) => sum + (o.actualTotalTime || o.estimatedTime || 0),
+      0
+    );
+    const totalHours = totalMinutes / 60;
 
     const updatedSession: DrivingSession = {
       ...session,
       orderIds: [...session.orderIds, order.id],
       totalOrders: session.totalOrders + 1,
+      totalEarnings,
+      totalHours,
     };
 
     setSession(updatedSession);

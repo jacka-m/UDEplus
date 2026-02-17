@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Loader2, ChevronRight, AlertCircle, Clock } from "lucide-react";
+import { Loader2, ChevronRight, AlertCircle, Clock, User } from "lucide-react";
 import { OrderData } from "@shared/types";
 import { useAuth } from "@/context/AuthContext";
 import { ordersManager } from "@/utils/ordersManager";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function PostOrderSurveyDelayed() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [orderData, setOrderData] = useState<OrderData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -104,10 +106,20 @@ export default function PostOrderSurveyDelayed() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-blue-50">
       {/* Header */}
       <div className="border-b border-gray-200 bg-white/60 backdrop-blur-sm sticky top-0 z-40">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
             Final Order Details
           </h1>
+          {user && (
+            <button
+              onClick={() => navigate("/profile")}
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-50 to-blue-50 text-gray-700 hover:from-purple-100 hover:to-blue-100 border border-purple-200 rounded-lg font-semibold transition"
+              title={t('order.account')}
+            >
+              <User className="w-4 h-4" />
+              {t('order.account')}
+            </button>
+          )}
         </div>
       </div>
 
