@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useSession } from "@/context/SessionContext";
 import { useLanguage } from "@/context/LanguageContext";
+import { toast } from "sonner";
 import { Play, LogOut, TrendingUp, User } from "lucide-react";
 
 export default function SessionStart() {
@@ -11,14 +12,29 @@ export default function SessionStart() {
   const { startSession } = useSession();
   const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleStartSession = async () => {
     setLoading(true);
+    setError(null);
     try {
-      await startSession();
-      navigate("/");
+      if (!user?.id) {
+        throw new Error("User not authenticated");
+      }
+
+      await startSession(user.id);
+
+      // Show success notification
+      toast.success("Driving Session Started! Ready to analyze orders.");
+
+      // Navigate to order analysis page
+      navigate("/analyze");
     } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : "Failed to start session";
+      setError(errorMsg);
+      toast.error(errorMsg);
       console.error("Failed to start session:", error);
+    } finally {
       setLoading(false);
     }
   };
@@ -79,6 +95,14 @@ export default function SessionStart() {
                 Start a driving session to begin analyzing and tracking your orders
               </p>
             </div>
+
+            {/* Error Alert */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-700">
+                <p className="font-semibold">Error</p>
+                <p className="text-xs mt-1">{error}</p>
+              </div>
+            )}
 
             {/* Benefits Section */}
             <div className="space-y-3 bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg p-6">

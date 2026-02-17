@@ -4,7 +4,7 @@ import { DrivingSession, OrderData } from "@shared/types";
 interface SessionContextType {
   session: DrivingSession | null;
   isSessionActive: boolean;
-  startSession: () => Promise<void>;
+  startSession: (userId: string) => Promise<void>;
   endSession: () => Promise<void>;
   addOrderToSession: (order: OrderData) => void;
   getSessionOrders: () => OrderData[];
@@ -53,11 +53,15 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     }
   }, [session, orders]);
 
-  const startSession = async () => {
+  const startSession = async (userId: string) => {
+    if (!userId) {
+      throw new Error("User ID is required to start a session");
+    }
+
     const now = new Date();
     const newSession: DrivingSession = {
       id: `session_${Date.now()}`,
-      userId: "", // Will be set from auth context in the component
+      userId: userId,
       startTime: now.toISOString(),
       status: "active",
       orderIds: [],
@@ -69,6 +73,24 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       createdAt: now.toISOString(),
       updatedAt: now.toISOString(),
     };
+
+    // POST to server to create session
+    try {
+      const response = await fetch("/api/sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newSession),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create session on server");
+      }
+
+      console.log("Session created successfully on server");
+    } catch (error) {
+      console.error("Error creating session on server:", error);
+      throw error;
+    }
 
     setSession(newSession);
     setOrders([]);
