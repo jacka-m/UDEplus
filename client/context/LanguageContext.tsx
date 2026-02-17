@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useAuth } from "./AuthContext";
-import { Language } from "@/utils/translations";
+import { Language, translations, t as translate } from "@/utils/translations";
 
 interface LanguageContextType {
   language: Language;
@@ -34,12 +34,12 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem("ude_language", lang);
   };
 
-  // Import translations dynamically to avoid circular imports
-  const t = (key: string): string => {
-    // Lazy load translations
-    const { translations } = require("@/utils/translations");
-    return translations[language]?.[key] || translations.en[key] || key;
-  };
+  const t = useCallback(
+    (key: string): string => {
+      return translations[language]?.[key] || translations.en[key] || key;
+    },
+    [language]
+  );
 
   return (
     <LanguageContext.Provider value={{ language, setLanguage, t }}>
