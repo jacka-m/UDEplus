@@ -178,10 +178,27 @@ export default function AdminMLPanel() {
     }
   }, [user]);
 
+  // Deduplicate orders by ID, keeping the most recent version
+  const deduplicateOrders = (orders: OrderData[]): OrderData[] => {
+    const seen = new Map<string, OrderData>();
+
+    orders.forEach((order) => {
+      const existing = seen.get(order.id);
+
+      // Keep the one with the most recent timestamp
+      if (!existing || new Date(order.updatedAt) > new Date(existing.updatedAt)) {
+        seen.set(order.id, order);
+      }
+    });
+
+    return Array.from(seen.values());
+  };
+
   const loadOrders = () => {
     try {
       const orders = ordersManager.getAllOrders();
-      setAllOrders(orders);
+      const dedupedOrders = deduplicateOrders(orders);
+      setAllOrders(dedupedOrders);
     } catch (error) {
       console.error("Failed to load orders:", error);
     }
@@ -190,7 +207,8 @@ export default function AdminMLPanel() {
   const loadMetrics = () => {
     try {
       const allSessions = ordersManager.getAllSessions();
-      const allOrders = ordersManager.getAllOrders();
+      const rawOrders = ordersManager.getAllOrders();
+      const allOrders = deduplicateOrders(rawOrders); // Deduplicate before calculating metrics
 
       // Calculate metrics
       const totalTimeSpent = allSessions.reduce(
