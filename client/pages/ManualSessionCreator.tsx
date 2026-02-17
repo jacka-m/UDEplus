@@ -26,8 +26,20 @@ export default function ManualSessionCreator() {
   const [successMessage, setSuccessMessage] = useState("");
 
   const handleAddOrder = (orderData: OrderData) => {
-    setOrders([...orders, orderData]);
+    setOrders((prev) => {
+      const next = [...prev, orderData];
+      console.debug("[ManualSessionCreator] order added", orderData);
+      console.debug("[ManualSessionCreator] orders after add", next);
+      return next;
+    });
   };
+
+  // Log orders when moving to review to help debugging why scores may be 0
+  React.useEffect(() => {
+    if (step === "review") {
+      console.debug("[ManualSessionCreator] entering review, orders:", orders);
+    }
+  }, [step, orders]);
 
   const handleRemoveOrder = (index: number) => {
     setOrders(orders.filter((_, i) => i !== index));
