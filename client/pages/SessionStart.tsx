@@ -2,12 +2,14 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useSession } from "@/context/SessionContext";
-import { Play, LogOut, TrendingUp } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
+import { Play, LogOut, TrendingUp, User } from "lucide-react";
 
 export default function SessionStart() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { startSession } = useSession();
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
 
   const handleStartSession = async () => {
@@ -40,6 +42,13 @@ export default function SessionStart() {
             {user && (
               <>
                 <span className="text-sm text-gray-600">{user.username}</span>
+                <button
+                  onClick={() => navigate("/profile")}
+                  className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 transition"
+                  title="Profile"
+                >
+                  <User className="w-4 h-4" />
+                </button>
                 <button
                   onClick={handleLogout}
                   className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 transition"

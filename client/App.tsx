@@ -15,6 +15,7 @@ import Login from "./pages/Login";
 import VerifyPhone from "./pages/VerifyPhone";
 import Onboarding from "./pages/Onboarding";
 import SessionStart from "./pages/SessionStart";
+import Profile from "./pages/Profile";
 import OrderPickup from "./pages/OrderPickup";
 import RestaurantWait from "./pages/RestaurantWait";
 import OrderDropoff from "./pages/OrderDropoff";
@@ -73,6 +74,15 @@ const App = () => (
                   element={
                     <ProtectedRoute>
                       <SessionEnd />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/profile"
+                  element={
+                    <ProtectedRoute>
+                      <Profile />
                     </ProtectedRoute>
                   }
                 />

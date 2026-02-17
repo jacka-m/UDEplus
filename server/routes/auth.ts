@@ -22,7 +22,19 @@ interface PendingUser {
   createdAt: string;
 }
 
-const users: StoredUser[] = [];
+// Master account for testing/demo - password is hashed using base64
+const masterAccount: StoredUser = {
+  id: "user_master_001",
+  username: "jack_am",
+  password: "QWtjYWoxNzc2OEBuZA==", // base64 encoded "Akcaj17768@nd"
+  phone: "1234567890",
+  zipCode: "91101",
+  language: "en",
+  completedOnboarding: true,
+  createdAt: new Date().toISOString(),
+};
+
+const users: StoredUser[] = [masterAccount];
 const pendingUsers: Map<string, PendingUser> = new Map();
 
 // Simple hash function (for demo purposes - use bcrypt in production)

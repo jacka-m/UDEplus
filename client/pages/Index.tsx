@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { X, ChevronRight, Loader2, LogOut, Clock, DollarSign, TrendingUp, Bell } from "lucide-react";
+import { X, ChevronRight, Loader2, LogOut, Clock, DollarSign, TrendingUp, Bell, User } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useSession } from "@/context/SessionContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { useDelayedReminder } from "@/hooks/useDelayedReminder";
 import { OrderData } from "@shared/types";
 import { mlModel } from "@/utils/mlModel";
@@ -199,6 +200,13 @@ export default function Index() {
                   <span className="text-sm text-gray-600">
                     {user.username}
                   </span>
+                  <button
+                    onClick={() => navigate("/profile")}
+                    className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 transition"
+                    title="Profile"
+                  >
+                    <User className="w-4 h-4" />
+                  </button>
                   <button
                     onClick={handleLogout}
                     className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 transition"
