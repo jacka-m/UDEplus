@@ -123,8 +123,11 @@ export default function PostOrderSurveyImmediate() {
               {/* Dropoff Zone */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Dropoff Zone
+                  Dropoff Zone/City
                 </label>
+                <p className="text-xs text-gray-500 mb-2">
+                  Where did you deliver this order? (e.g., Downtown, West Hollywood, Glendale)
+                </p>
                 <input
                   type="text"
                   value={formData.dropoffZone}
@@ -141,9 +144,10 @@ export default function PostOrderSurveyImmediate() {
               </div>
 
               {/* Rating Fields */}
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <RatingField
-                  label="Parking Difficulty (1=Easy, 3=Difficult)"
+                  label="Parking Difficulty at Restaurant"
+                  description="How easy was it to find parking at the pickup location? (Easy vs. difficult spots, time spent searching)"
                   value={formData.parkingDifficulty}
                   onChange={(val) =>
                     setFormData({ ...formData, parkingDifficulty: val })
@@ -154,7 +158,8 @@ export default function PostOrderSurveyImmediate() {
                 />
 
                 <RatingField
-                  label="Dropoff Difficulty (1=Easy, 3=Difficult)"
+                  label="Dropoff Difficulty"
+                  description="How difficult was it to locate and deliver to the customer? (Finding the address, accessibility, security)"
                   value={formData.dropoffDifficulty}
                   onChange={(val) =>
                     setFormData({ ...formData, dropoffDifficulty: val })
@@ -165,7 +170,8 @@ export default function PostOrderSurveyImmediate() {
                 />
 
                 <RatingField
-                  label="End Zone Quality (1=Bad, 3=Excellent)"
+                  label="End Zone Quality"
+                  description="How is the area where you dropped off the order? Is it a good neighborhood to receive future orders from?"
                   value={formData.endZoneQuality}
                   onChange={(val) =>
                     setFormData({ ...formData, endZoneQuality: val })
@@ -179,7 +185,8 @@ export default function PostOrderSurveyImmediate() {
                 {orderData.numberOfStops > 1 && (
                   <>
                     <RatingField
-                      label="Route Cohesion (1=Chaotic, 5=Perfect)"
+                      label="Route Cohesion"
+                      description="Did this route feel efficient or chaotic? (Same direction stops, minimal backtracking vs. scattered stops)"
                       value={formData.routeCohesion}
                       onChange={(val) =>
                         setFormData({ ...formData, routeCohesion: val })
@@ -196,7 +203,8 @@ export default function PostOrderSurveyImmediate() {
                     />
 
                     <RatingField
-                      label="Dropoff Compression (1=Far, 5=Clustered)"
+                      label="Dropoff Compression"
+                      description="How close were the dropoff locations? (All same building, same block, spread throughout area)"
                       value={formData.dropoffCompression}
                       onChange={(val) =>
                         setFormData({
@@ -218,7 +226,8 @@ export default function PostOrderSurveyImmediate() {
                 )}
 
                 <RatingField
-                  label="Next Order Momentum (1=Dead, 5=Busy)"
+                  label="Next Order Momentum"
+                  description="After dropping off, what's the likelihood of getting good orders? (Dead zone, busy restaurant area, etc.)"
                   value={formData.nextOrderMomentum}
                   onChange={(val) =>
                     setFormData({ ...formData, nextOrderMomentum: val })
@@ -257,6 +266,7 @@ export default function PostOrderSurveyImmediate() {
 
 interface RatingFieldProps {
   label: string;
+  description?: string;
   value: number;
   onChange: (value: number) => void;
   disabled: boolean;
@@ -266,6 +276,7 @@ interface RatingFieldProps {
 
 function RatingField({
   label,
+  description,
   value,
   onChange,
   disabled,
@@ -274,9 +285,12 @@ function RatingField({
 }: RatingFieldProps) {
   return (
     <div>
-      <label className="block text-sm font-semibold text-gray-700 mb-3">
+      <label className="block text-sm font-semibold text-gray-700 mb-1">
         {label}
       </label>
+      {description && (
+        <p className="text-xs text-gray-500 mb-3">{description}</p>
+      )}
       <div className="flex gap-2 justify-between">
         {Array.from({ length: scale }).map((_, i) => {
           const num = i + 1;

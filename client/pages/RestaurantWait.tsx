@@ -8,6 +8,9 @@ export default function RestaurantWait() {
   const location = useLocation();
   const [orderData, setOrderData] = useState<OrderData | null>(null);
   const [seconds, setSeconds] = useState(0);
+  const [restaurantName, setRestaurantName] = useState("");
+  const [restaurantAddress, setRestaurantAddress] = useState("");
+  const [dropoffZone, setDropoffZone] = useState("");
   const intervalRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
@@ -54,6 +57,9 @@ export default function RestaurantWait() {
     const waitTime = Math.round(seconds / 60); // Convert to minutes
     const updatedOrder: OrderData = {
       ...orderData,
+      pickupSiteName: restaurantName || orderData.pickupSiteName,
+      pickupSiteAddress: restaurantAddress || orderData.pickupSiteAddress,
+      dropoffZone: dropoffZone || orderData.dropoffZone,
       waitEndTime: new Date().toISOString(),
       waitTimeAtRestaurant: waitTime,
       actualStartTime: new Date().toISOString(),
@@ -84,17 +90,49 @@ export default function RestaurantWait() {
               <p className="text-gray-600">Time waiting at restaurant</p>
             </div>
 
-            {/* Restaurant Info */}
-            <div className="bg-gray-50 rounded-lg p-4 space-y-2 text-sm">
+            {/* Restaurant Info Form */}
+            <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg p-4 space-y-4">
+              <p className="text-sm font-semibold text-gray-700 mb-4">
+                📝 Fill in order details while you wait
+              </p>
+
               <div>
-                <p className="text-gray-600">Restaurant</p>
-                <p className="font-semibold text-gray-900">
-                  {orderData.restaurantName || "Restaurant name not provided"}
-                </p>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                  Pickup Location Name
+                </label>
+                <input
+                  type="text"
+                  value={restaurantName}
+                  onChange={(e) => setRestaurantName(e.target.value)}
+                  placeholder="e.g., McDonald's, Thai Palace"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
               </div>
-              <div className="pt-2 border-t border-gray-200">
-                <p className="text-gray-600">Location</p>
-                <p className="font-semibold text-gray-900">{orderData.pickupZone}</p>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                  Pickup Location Address
+                </label>
+                <input
+                  type="text"
+                  value={restaurantAddress}
+                  onChange={(e) => setRestaurantAddress(e.target.value)}
+                  placeholder="e.g., 123 Main St, Downtown"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                  Dropoff Zone (City/Area)
+                </label>
+                <input
+                  type="text"
+                  value={dropoffZone}
+                  onChange={(e) => setDropoffZone(e.target.value)}
+                  placeholder="e.g., West Hollywood, Downtown LA"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
               </div>
             </div>
 

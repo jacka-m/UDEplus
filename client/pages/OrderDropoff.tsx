@@ -38,6 +38,7 @@ export default function OrderDropoff() {
       actualTotalTime: actualTime,
     };
 
+    // Go to immediate survey before returning to main page
     navigate("/post-order-survey-immediate", { state: { orderData: updatedOrder } });
   };
 
@@ -107,7 +108,7 @@ export default function OrderDropoff() {
               onClick={handleDropoffComplete}
               className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-4 rounded-lg font-semibold text-lg hover:shadow-lg transition"
             >
-              Select after dropping off order
+              Order dropped off
             </button>
 
             {/* Help Text */}

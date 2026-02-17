@@ -9,8 +9,8 @@ import { OrderData, DrivingSession } from "@shared/types";
 
 export default function Profile() {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
-  const { t, language } = useLanguage();
+  const { user, logout, updateUser } = useAuth();
+  const { t, language, setLanguage } = useLanguage();
   const [minimumWage, setMinimumWage] = useState(0);
   const [costOfLiving, setCostOfLiving] = useState(1.0);
   const [sessions, setSessions] = useState<DrivingSession[]>([]);
@@ -18,6 +18,11 @@ export default function Profile() {
   const [expandedSessions, setExpandedSessions] = useState<Set<string>>(new Set());
   const [filterScore, setFilterScore] = useState<"all" | 1 | 2 | 3 | 4>("all");
   const [filterSession, setFilterSession] = useState<string>("all");
+  const [editingZipCode, setEditingZipCode] = useState(false);
+  const [editingLanguage, setEditingLanguage] = useState(false);
+  const [tempZipCode, setTempZipCode] = useState(user?.zipCode || "");
+  const [tempLanguage, setTempLanguage] = useState(user?.language || "en");
+  const [savingChanges, setSavingChanges] = useState(false);
 
   useEffect(() => {
     if (user?.zipCode) {
@@ -38,6 +43,42 @@ export default function Profile() {
     if (confirm("Are you sure you want to sign out?")) {
       logout();
       navigate("/login");
+    }
+  };
+
+  const handleSaveZipCode = async () => {
+    if (!tempZipCode.trim()) return;
+    setSavingChanges(true);
+    try {
+      await updateUser({
+        ...user!,
+        zipCode: tempZipCode,
+      });
+      const wage = getMinimumWageByZip(tempZipCode);
+      const col = getCostOfLivingFactor(tempZipCode);
+      setMinimumWage(wage);
+      setCostOfLiving(col);
+      setEditingZipCode(false);
+    } catch (error) {
+      console.error("Failed to update ZIP code:", error);
+    } finally {
+      setSavingChanges(false);
+    }
+  };
+
+  const handleSaveLanguage = async () => {
+    setSavingChanges(true);
+    try {
+      await updateUser({
+        ...user!,
+        language: tempLanguage,
+      });
+      setLanguage(tempLanguage as "en" | "es" | "fr" | "pt" | "zh");
+      setEditingLanguage(false);
+    } catch (error) {
+      console.error("Failed to update language:", error);
+    } finally {
+      setSavingChanges(false);
     }
   };
 
@@ -140,24 +181,114 @@ export default function Profile() {
 
           {/* Account Information Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 border-b pb-8">
+            {/* ZIP Code Card */}
             <div className="bg-gray-50 rounded-lg p-4">
-              <div className="flex items-center gap-2 text-gray-600 mb-2">
-                <MapPin className="w-4 h-4" />
-                <span className="text-sm font-semibold">ZIP Code</span>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2 text-gray-600">
+                  <MapPin className="w-4 h-4" />
+                  <span className="text-sm font-semibold">ZIP Code</span>
+                </div>
+                {!editingZipCode && (
+                  <button
+                    onClick={() => {
+                      setTempZipCode(user?.zipCode || "");
+                      setEditingZipCode(true);
+                    }}
+                    className="text-xs text-purple-600 hover:text-purple-700 font-semibold"
+                  >
+                    Edit
+                  </button>
+                )}
               </div>
-              <p className="text-2xl font-bold text-gray-900">{user?.zipCode}</p>
+              {editingZipCode ? (
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    value={tempZipCode}
+                    onChange={(e) => setTempZipCode(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    disabled={savingChanges}
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleSaveZipCode}
+                      disabled={savingChanges}
+                      className="flex-1 px-2 py-1 bg-purple-600 text-white text-xs rounded font-semibold hover:bg-purple-700 disabled:opacity-50"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={() => setEditingZipCode(false)}
+                      disabled={savingChanges}
+                      className="flex-1 px-2 py-1 bg-gray-300 text-gray-700 text-xs rounded font-semibold hover:bg-gray-400 disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-2xl font-bold text-gray-900">{user?.zipCode}</p>
+              )}
             </div>
 
+            {/* Language Card */}
             <div className="bg-gray-50 rounded-lg p-4">
-              <div className="flex items-center gap-2 text-gray-600 mb-2">
-                <Globe className="w-4 h-4" />
-                <span className="text-sm font-semibold">Language</span>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2 text-gray-600">
+                  <Globe className="w-4 h-4" />
+                  <span className="text-sm font-semibold">Language</span>
+                </div>
+                {!editingLanguage && (
+                  <button
+                    onClick={() => {
+                      setTempLanguage(user?.language || "en");
+                      setEditingLanguage(true);
+                    }}
+                    className="text-xs text-purple-600 hover:text-purple-700 font-semibold"
+                  >
+                    Edit
+                  </button>
+                )}
               </div>
-              <p className="text-2xl font-bold text-gray-900">
-                {languageNames[user?.language || "en"]}
-              </p>
+              {editingLanguage ? (
+                <div className="space-y-2">
+                  <select
+                    value={tempLanguage}
+                    onChange={(e) => setTempLanguage(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    disabled={savingChanges}
+                  >
+                    <option value="en">English</option>
+                    <option value="es">Español</option>
+                    <option value="fr">Français</option>
+                    <option value="pt">Português</option>
+                    <option value="zh">中文</option>
+                  </select>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleSaveLanguage}
+                      disabled={savingChanges}
+                      className="flex-1 px-2 py-1 bg-purple-600 text-white text-xs rounded font-semibold hover:bg-purple-700 disabled:opacity-50"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={() => setEditingLanguage(false)}
+                      disabled={savingChanges}
+                      className="flex-1 px-2 py-1 bg-gray-300 text-gray-700 text-xs rounded font-semibold hover:bg-gray-400 disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-2xl font-bold text-gray-900">
+                  {languageNames[user?.language || "en"]}
+                </p>
+              )}
             </div>
 
+            {/* Account Created Card */}
             <div className="bg-gray-50 rounded-lg p-4">
               <div className="flex items-center gap-2 text-gray-600 mb-2">
                 <span className="text-sm font-semibold">Account Created</span>
