@@ -32,11 +32,24 @@ export default function Profile() {
       setCostOfLiving(col);
     }
 
-    // Load historical sessions and orders
-    const historicalSessions = ordersManager.getAllSessions();
-    const historicalOrders = ordersManager.getAllOrders();
-    setSessions(historicalSessions);
-    setAllOrders(historicalOrders);
+    // Load historical sessions and orders from both localStorage and API
+    const loadOrders = async () => {
+      try {
+        const historicalSessions = ordersManager.getAllSessions();
+        const historicalOrders = await ordersManager.getAllOrdersMerged();
+        setSessions(historicalSessions);
+        setAllOrders(historicalOrders);
+      } catch (error) {
+        console.error("Failed to load orders:", error);
+        // Fallback to localStorage only
+        const historicalSessions = ordersManager.getAllSessions();
+        const historicalOrders = ordersManager.getAllOrders();
+        setSessions(historicalSessions);
+        setAllOrders(historicalOrders);
+      }
+    };
+
+    loadOrders();
   }, [user?.zipCode]);
 
   const handleLogout = () => {

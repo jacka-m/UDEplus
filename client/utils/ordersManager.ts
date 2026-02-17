@@ -26,7 +26,7 @@ export const ordersManager = {
     }
   },
 
-  // Get all historical orders
+  // Get all historical orders from localStorage
   getAllOrders: (): OrderData[] => {
     try {
       const orders = localStorage.getItem(HISTORICAL_ORDERS_KEY);
@@ -34,6 +34,45 @@ export const ordersManager = {
     } catch (error) {
       console.error("Failed to load historical orders:", error);
       return [];
+    }
+  },
+
+  // Fetch all orders from backend API (Supabase)
+  getAllOrdersFromAPI: async (): Promise<OrderData[]> => {
+    try {
+      const response = await fetch("/api/orders");
+      if (!response.ok) {
+        console.error("Failed to fetch orders from API:", response.status);
+        return [];
+      }
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
+    } catch (error) {
+      console.error("Failed to fetch orders from API:", error);
+      return [];
+    }
+  },
+
+  // Get merged orders from both localStorage and API
+  getAllOrdersMerged: async (): Promise<OrderData[]> => {
+    try {
+      const localOrders = ordersManager.getAllOrders();
+      const apiOrders = await ordersManager.getAllOrdersFromAPI();
+      
+      // Merge and deduplicate by ID, keeping the most recent version
+      const merged = new Map<string, OrderData>();
+      
+      [...localOrders, ...apiOrders].forEach((order) => {
+        const existing = merged.get(order.id);
+        if (!existing || new Date(order.updatedAt) > new Date(existing.updatedAt)) {
+          merged.set(order.id, order);
+        }
+      });
+      
+      return Array.from(merged.values());
+    } catch (error) {
+      console.error("Failed to merge orders:", error);
+      return ordersManager.getAllOrders(); // Fallback to localStorage
     }
   },
 

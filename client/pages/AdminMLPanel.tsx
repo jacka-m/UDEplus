@@ -200,21 +200,25 @@ export default function AdminMLPanel() {
     return Array.from(seen.values());
   };
 
-  const loadOrders = () => {
+  const loadOrders = async () => {
     try {
-      const orders = ordersManager.getAllOrders();
+      const orders = await ordersManager.getAllOrdersMerged();
       const dedupedOrders = deduplicateOrders(orders);
       setAllOrders(dedupedOrders);
     } catch (error) {
       console.error("Failed to load orders:", error);
+      // Fallback to localStorage only
+      const orders = ordersManager.getAllOrders();
+      const dedupedOrders = deduplicateOrders(orders);
+      setAllOrders(dedupedOrders);
     }
   };
 
-  const loadMetrics = () => {
+  const loadMetrics = async () => {
     try {
       const allSessions = ordersManager.getAllSessions();
-      const rawOrders = ordersManager.getAllOrders();
-      const allOrders = deduplicateOrders(rawOrders); // Deduplicate before calculating metrics
+      const rawOrders = await ordersManager.getAllOrdersMerged();
+      const allOrders = deduplicateOrders(rawOrders);
 
       // Calculate metrics
       const totalTimeSpent = allSessions.reduce(
