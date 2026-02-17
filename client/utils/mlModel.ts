@@ -68,10 +68,23 @@ class MLModel {
     // Convert orders to ML data points
     const dataPoints: MLModelData[] = orders
       .filter((o) => o.score) // Only include orders with scores
-      .map((o) => ({
-        features: this.extractFeatures(o),
-        label: o.score.score,
-      }));
+      .map((o) => {
+        // Convert score (1-10) to label (1-4): poor=1, not good=2, acceptable=3, great=4
+        let label: 1 | 2 | 3 | 4;
+        if (o.score.score <= 2.5) {
+          label = 1; // poor
+        } else if (o.score.score <= 5) {
+          label = 2; // not good
+        } else if (o.score.score <= 7.5) {
+          label = 3; // acceptable
+        } else {
+          label = 4; // great
+        }
+        return {
+          features: this.extractFeatures(o),
+          label,
+        };
+      });
 
     // Calculate feature importance based on correlation with score
     const featureWeights = this.calculateFeatureWeights(dataPoints);

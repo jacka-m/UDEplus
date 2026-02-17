@@ -36,6 +36,10 @@ export interface OrderData {
   pickupSiteName?: string;
   pickupSiteAddress?: string;
 
+  // Restaurant Info (collected during post-order survey)
+  restaurantName?: string;
+  restaurantAddress?: string;
+
   // Immediate Post-Order Survey (collected right after dropoff)
   parkingDifficulty?: 1 | 2 | 3;
   dropoffDifficulty?: 1 | 2 | 3;
