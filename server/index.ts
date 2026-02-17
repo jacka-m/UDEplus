@@ -2,6 +2,18 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import { handleDemo } from "./routes/demo";
+import {
+  handleSignup,
+  handleVerifyPhone,
+  handleResendCode,
+  handleLogin,
+} from "./routes/auth";
+import {
+  handleCreateOrder,
+  handleGetUserOrders,
+  handleGetOrderStats,
+  handleExportAllData,
+} from "./routes/orders";
 
 export function createServer() {
   const app = express();
@@ -18,6 +30,18 @@ export function createServer() {
   });
 
   app.get("/api/demo", handleDemo);
+
+  // Auth routes
+  app.post("/api/auth/signup", handleSignup);
+  app.post("/api/auth/verify-phone", handleVerifyPhone);
+  app.post("/api/auth/resend-code", handleResendCode);
+  app.post("/api/auth/login", handleLogin);
+
+  // Orders routes
+  app.post("/api/orders", handleCreateOrder);
+  app.get("/api/users/:userId/orders", handleGetUserOrders);
+  app.get("/api/users/:userId/stats", handleGetOrderStats);
+  app.get("/api/orders/export", handleExportAllData);
 
   return app;
 }

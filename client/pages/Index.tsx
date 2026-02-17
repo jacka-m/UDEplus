@@ -1,12 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { X, ChevronRight, Loader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { X, ChevronRight, Loader2, LogOut } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { OrderData } from "@shared/types";
 
-type FlowStep =
-  | "form"
-  | "recommendation"
-  | "offerChoice"
-  | "loading"
-  | "orderWait";
+type FlowStep = "form" | "recommendation";
 
 interface FormData {
   stops: number;
@@ -17,6 +15,8 @@ interface FormData {
 }
 
 export default function Index() {
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [step, setStep] = useState<FlowStep>("form");
   const [formData, setFormData] = useState<FormData>({
     stops: 0,
@@ -26,12 +26,9 @@ export default function Index() {
     pickupZone: "",
   });
   const [score, setScore] = useState(0);
-  const [startTime, setStartTime] = useState<Date | null>(null);
-  const [loadingTime, setLoadingTime] = useState(0);
-  const [showWaitButton, setShowWaitButton] = useState(false);
   const timerRef = useRef<NodeJS.Timeout>();
 
-  const calculateScore = (data: FormData): number => {
+  const calculateScore = (data: FormData): 1 | 2 | 3 | 4 => {
     // ML algorithm to calculate hourly rate score (1-4)
     // Formula considers multiple factors
     const hourlyRate = (data.payout / (data.estimatedTime / 60)) * 1.2; // Adjusted for 1.2x multiplier
@@ -68,16 +65,42 @@ export default function Index() {
   };
 
   const handleTookOffer = () => {
-    const now = new Date();
-    setStartTime(now);
-    setLoadingTime(0);
-    setShowWaitButton(false);
-    setStep("loading");
+    if (!user) return;
 
-    // Start timer - show wait button after 5 seconds
-    timerRef.current = setTimeout(() => {
-      setShowWaitButton(true);
-    }, 5000);
+    const now = new Date();
+    const dayOfWeek = now.toLocaleDateString("en-US", { weekday: "long" });
+    const date = now.toLocaleDateString("en-US");
+    const timeOfDay = now.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+
+    // Create order data object
+    const orderData: OrderData = {
+      id: `order_${Date.now()}`,
+      userId: user.id,
+      numberOfStops: formData.stops,
+      shownPayout: formData.payout,
+      miles: formData.miles,
+      estimatedTime: formData.estimatedTime,
+      pickupZone: formData.pickupZone,
+      score: {
+        score: score as 1 | 2 | 3 | 4,
+        recommendation: score <= 2 ? "decline" : "take",
+        timestamp: now.toISOString(),
+      },
+      offeredAt: now.toISOString(),
+      acceptedAt: now.toISOString(),
+      dayOfWeek,
+      date,
+      timeOfDay,
+      createdAt: now.toISOString(),
+      updatedAt: now.toISOString(),
+    };
+
+    // Navigate to order pickup page with order data
+    navigate("/order-pickup", { state: { orderData } });
   };
 
   const handleDeclinedOffer = () => {
@@ -91,40 +114,37 @@ export default function Index() {
     });
   };
 
-  const handleCloseLoading = () => {
-    if (
-      confirm("Did you decline the offer?")
-    ) {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-      }
-      handleDeclinedOffer();
+  const handleLogout = () => {
+    if (confirm("Are you sure you want to sign out?")) {
+      logout();
+      navigate("/login");
     }
-  };
-
-  const handleOrderWait = () => {
-    // This is where the user clicks when they're waiting for the order
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-    }
-    // Record completion time - can be used for analytics
-    const endTime = new Date();
-    const completionMinutes =
-      startTime && (endTime.getTime() - startTime.getTime()) / 60000;
-    console.log(
-      `Order completed. Time taken: ${completionMinutes?.toFixed(1)} minutes`
-    );
-    handleDeclinedOffer();
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-blue-50">
       {/* Modern header */}
       <div className="border-b border-gray-200 bg-white/60 backdrop-blur-sm sticky top-0 z-40">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
             Welcome to UDE+
           </h1>
+          <div className="flex items-center gap-3">
+            {user && (
+              <>
+                <span className="text-sm text-gray-600">
+                  {user.username}
+                </span>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 transition"
+                  title="Sign out"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -334,55 +354,6 @@ export default function Index() {
           </div>
         )}
 
-        {/* Loading Step */}
-        {step === "loading" && (
-          <div className="w-full max-w-md">
-            <div className="bg-white rounded-2xl shadow-lg p-8 space-y-8">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Loader2 className="w-5 h-5 text-purple-600 animate-spin" />
-                  <span className="text-lg font-semibold text-gray-900">
-                    Loading…
-                  </span>
-                </div>
-                <button
-                  onClick={handleCloseLoading}
-                  className="text-gray-400 hover:text-gray-600 transition"
-                  title="Close"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="bg-gray-50 rounded-lg p-6 text-center space-y-2">
-                <p className="text-sm text-gray-600">
-                  Order details are being prepared
-                </p>
-                <p className="text-xs text-gray-500">
-                  Started at {startTime?.toLocaleTimeString()}
-                </p>
-              </div>
-
-              {showWaitButton && (
-                <button
-                  onClick={handleOrderWait}
-                  className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition"
-                >
-                  Click if you have to wait for order
-                </button>
-              )}
-
-              {!showWaitButton && (
-                <div className="text-center">
-                  <div className="inline-flex items-center gap-2 text-sm text-gray-500">
-                    <div className="w-2 h-2 bg-purple-600 rounded-full animate-pulse"></div>
-                    Ready in a moment...
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
