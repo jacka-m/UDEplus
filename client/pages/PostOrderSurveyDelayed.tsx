@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Loader2, ChevronRight, AlertCircle, Clock } from "lucide-react";
 import { OrderData } from "@shared/types";
 import { useAuth } from "@/context/AuthContext";
+import { ordersManager } from "@/utils/ordersManager";
 
 export default function PostOrderSurveyDelayed() {
   const navigate = useNavigate();
@@ -57,6 +58,15 @@ export default function PostOrderSurveyDelayed() {
         const data = await response.json();
         throw new Error(data.message || "Failed to save survey");
       }
+
+      // Update completed order in user's historical data (localStorage)
+      // This ensures the order record is updated with the delayed data
+      const existingOrders = localStorage.getItem("ude_all_orders");
+      const allOrders: OrderData[] = existingOrders ? JSON.parse(existingOrders) : [];
+      const updatedOrders = allOrders.map(order =>
+        order.id === completedOrder.id ? completedOrder : order
+      );
+      localStorage.setItem("ude_all_orders", JSON.stringify(updatedOrders));
 
       setSuccess(true);
 

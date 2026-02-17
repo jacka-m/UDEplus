@@ -1,17 +1,21 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import { useSession } from "@/context/SessionContext";
 import { Loader2 } from "lucide-react";
 
 export default function Home() {
   const navigate = useNavigate();
   const { user, isLoading } = useAuth();
+  const { isSessionActive } = useSession();
   const [isCheckingStatus, setIsCheckingStatus] = useState(true);
 
   useEffect(() => {
     if (!isLoading) {
-      // Check if user has completed onboarding
-      if (user?.completedOnboarding) {
+      // If user has an active session, return to the analysis page
+      if (isSessionActive) {
+        navigate("/analyze");
+      } else if (user?.completedOnboarding) {
         // Go directly to session start
         navigate("/session-start");
       } else {
@@ -20,7 +24,7 @@ export default function Home() {
       }
       setIsCheckingStatus(false);
     }
-  }, [user, isLoading, navigate]);
+  }, [user, isLoading, isSessionActive, navigate]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-purple-50 to-blue-50">

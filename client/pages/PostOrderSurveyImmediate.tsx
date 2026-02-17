@@ -3,10 +3,13 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Loader2, ChevronRight, AlertCircle } from "lucide-react";
 import { OrderData } from "@shared/types";
 import { delayedDataReminder } from "@/utils/delayedDataReminder";
+import { ordersManager } from "@/utils/ordersManager";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function PostOrderSurveyImmediate() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useLanguage();
   const [orderData, setOrderData] = useState<OrderData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -70,6 +73,13 @@ export default function PostOrderSurveyImmediate() {
         throw new Error(data.message || "Failed to save survey");
       }
 
+      // Save completed order to user's historical data (localStorage)
+      // This ensures data persists even if backend storage fails
+      const existingOrders = localStorage.getItem("ude_all_orders");
+      const allOrders: OrderData[] = existingOrders ? JSON.parse(existingOrders) : [];
+      const updatedOrders = [...allOrders, completedOrder];
+      localStorage.setItem("ude_all_orders", JSON.stringify(updatedOrders));
+
       // Queue for 2-hour delayed data collection
       delayedDataReminder.addOrder(completedOrder);
 
@@ -95,7 +105,7 @@ export default function PostOrderSurveyImmediate() {
       <div className="border-b border-gray-200 bg-white/60 backdrop-blur-sm sticky top-0 z-40">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-            Quick Feedback
+            {t('survey.quickFeedback')}
           </h1>
         </div>
       </div>
@@ -112,7 +122,7 @@ export default function PostOrderSurveyImmediate() {
 
             <div>
               <h2 className="text-xl font-bold text-gray-900 mb-2">
-                Order Complete - Quick Feedback
+                {t('survey.quickFeedback')}
               </h2>
               <p className="text-gray-600 text-sm">
                 Help us improve by sharing your experience with this delivery (takes 30 seconds)
@@ -123,10 +133,10 @@ export default function PostOrderSurveyImmediate() {
               {/* Dropoff Zone */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Dropoff Zone/City
+                  {t('survey.dropoffZone')}
                 </label>
                 <p className="text-xs text-gray-500 mb-2">
-                  Where did you deliver this order? (e.g., Downtown, West Hollywood, Glendale)
+                  {t('survey.dropoffZoneHelp')}
                 </p>
                 <input
                   type="text"
@@ -240,10 +250,9 @@ export default function PostOrderSurveyImmediate() {
 
               {/* Info */}
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-xs text-blue-700">
-                <p className="font-semibold mb-1">📝 Final Details</p>
+                <p className="font-semibold mb-1">📝 {t('survey.finalDetailsReminder')}</p>
                 <p>
-                  You'll receive a reminder in 2 hours to add the pickup location name,
-                  address, and final payout information.
+                  {t('survey.finalDetailsMessage')}
                 </p>
               </div>
 
@@ -253,7 +262,7 @@ export default function PostOrderSurveyImmediate() {
                 disabled={loading}
                 className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? "Saving..." : "Complete & Back to Session"}{" "}
+                {loading ? t('survey.saving') : t('survey.completeButton')}{" "}
                 <ChevronRight className="w-4 h-4" />
               </button>
             </form>

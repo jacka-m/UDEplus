@@ -23,6 +23,7 @@ export default function Index() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { session, isSessionActive, endSession, addOrderToSession } = useSession();
+  const { t } = useLanguage();
   const [step, setStep] = useState<FlowStep>("form");
   const [formData, setFormData] = useState<FormData>({
     stops: 0,
@@ -179,7 +180,7 @@ export default function Index() {
   };
 
   const handleLogout = () => {
-    if (confirm("Are you sure you want to sign out?")) {
+    if (confirm(t('order.areYouSure'))) {
       logout();
       navigate("/login");
     }
@@ -192,7 +193,7 @@ export default function Index() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between mb-3">
             <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-              Welcome to UDE+
+              {t('order.welcomeUDE')}
             </h1>
             <div className="flex items-center gap-2">
               {user && (
@@ -200,15 +201,15 @@ export default function Index() {
                   <button
                     onClick={() => navigate("/profile")}
                     className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-50 to-blue-50 text-gray-700 hover:from-purple-100 hover:to-blue-100 border border-purple-200 rounded-lg font-semibold transition"
-                    title="Account"
+                    title={t('order.account')}
                   >
                     <User className="w-4 h-4" />
-                    Account
+                    {t('order.account')}
                   </button>
                   <button
                     onClick={handleLogout}
                     className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-red-600 transition"
-                    title="Sign out"
+                    title={t('nav.signOut')}
                   >
                     <LogOut className="w-4 h-4" />
                   </button>
@@ -240,7 +241,7 @@ export default function Index() {
                 disabled={sessionEndLoading}
                 className="px-3 py-1 bg-red-100 text-red-700 rounded-md text-xs font-semibold hover:bg-red-200 transition disabled:opacity-50"
               >
-                {sessionEndLoading ? "Ending..." : "End Session"}
+                {sessionEndLoading ? t('order.endingSession') : t('nav.endSession')}
               </button>
             </div>
           )}
@@ -254,7 +255,7 @@ export default function Index() {
             <div className="bg-white rounded-2xl shadow-lg p-8 space-y-6">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Number of Stops
+                  {t('order.numberOfStops')}
                 </label>
                 <input
                   type="number"
@@ -266,14 +267,14 @@ export default function Index() {
                       stops: parseInt(e.target.value) || 0,
                     })
                   }
-                  placeholder="Enter number of stops"
+                  placeholder={t('order.enterNumberOfStops')}
                   className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-50 transition"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Shown Payout from Order
+                  {t('order.shownPayout')}
                 </label>
                 <div className="flex items-center">
                   <span className="text-gray-500 mr-2">$</span>
@@ -296,7 +297,7 @@ export default function Index() {
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Miles (Distance)
+                  {t('order.miles')}
                 </label>
                 <input
                   type="number"
@@ -309,14 +310,14 @@ export default function Index() {
                       miles: parseFloat(e.target.value) || 0,
                     })
                   }
-                  placeholder="Enter miles"
+                  placeholder={t('order.enterMiles')}
                   className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-50 transition"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Uber Estimated Time (minutes)
+                  {t('order.estimatedTime')}
                 </label>
                 <input
                   type="number"
@@ -328,14 +329,14 @@ export default function Index() {
                       estimatedTime: parseInt(e.target.value) || 0,
                     })
                   }
-                  placeholder="Enter minutes"
+                  placeholder={t('order.enterMinutes')}
                   className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-50 transition"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Pickup Zone (City)
+                  {t('order.pickupZone')}
                 </label>
                 <input
                   type="text"
@@ -346,7 +347,7 @@ export default function Index() {
                       pickupZone: e.target.value,
                     })
                   }
-                  placeholder="Enter city name (e.g., Downtown)"
+                  placeholder={t('order.enterCityName')}
                   className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-50 transition"
                 />
               </div>
@@ -362,7 +363,7 @@ export default function Index() {
                 }
                 className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Analyze Order <ChevronRight className="w-4 h-4" />
+                {t('order.analyzeButton')} <ChevronRight className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -389,7 +390,7 @@ export default function Index() {
               {/* Recommendation Text */}
               <div className="text-center">
                 <p className="text-lg font-semibold text-gray-900 mb-2">
-                  Order Analysis Complete
+                  {t('order.analysisComplete')}
                 </p>
                 <div className="inline-block px-6 py-3 rounded-full bg-gradient-to-r from-purple-100 to-blue-100">
                   <p
@@ -400,8 +401,8 @@ export default function Index() {
                     }`}
                   >
                     {score <= 2
-                      ? "⚠️ Recommendation: Do not take this order."
-                      : "✓ Recommendation: Take this order."}
+                      ? t('order.doNotTake')
+                      : t('order.takeoffer')}
                   </p>
                 </div>
               </div>
@@ -409,25 +410,25 @@ export default function Index() {
               {/* Order Details Summary */}
               <div className="bg-gray-50 rounded-lg p-4 space-y-3 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Payout:</span>
+                  <span className="text-gray-600">{t('order.payout')}</span>
                   <span className="font-semibold text-gray-900">
                     ${formData.payout.toFixed(2)}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Distance:</span>
+                  <span className="text-gray-600">{t('order.distance')}</span>
                   <span className="font-semibold text-gray-900">
                     {formData.miles.toFixed(1)} miles
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Est. Time:</span>
+                  <span className="text-gray-600">{t('order.estTime')}</span>
                   <span className="font-semibold text-gray-900">
                     {formData.estimatedTime} min
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Stops:</span>
+                  <span className="text-gray-600">{t('order.stops')}</span>
                   <span className="font-semibold text-gray-900">
                     {formData.stops}
                   </span>
@@ -440,13 +441,13 @@ export default function Index() {
                   onClick={handleTookOffer}
                   className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition"
                 >
-                  Took Offer
+                  {t('order.tookOffer')}
                 </button>
                 <button
                   onClick={handleDeclinedOffer}
                   className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition"
                 >
-                  Declined Offer
+                  {t('order.declinedOffer')}
                 </button>
               </div>
             </div>
@@ -467,24 +468,23 @@ export default function Index() {
               {/* Content */}
               <div className="text-center space-y-2">
                 <h3 className="text-xl font-bold text-gray-900">
-                  Time for Final Details
+                  {t('order.delayedDataReminder')}
                 </h3>
                 <p className="text-gray-600 text-sm">
-                  It's been 2 hours since you completed this order. Help us finalize
-                  the record by adding the pickup location and actual payout.
+                  {t('order.reminderMessage')}
                 </p>
               </div>
 
               {/* Order Info */}
               <div className="bg-gray-50 rounded-lg p-4 text-sm space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Estimated Payout:</span>
+                  <span className="text-gray-600">{t('order.estimatedPayout')}</span>
                   <span className="font-semibold">
                     ${reminderOrder.shownPayout.toFixed(2)}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Order ID:</span>
+                  <span className="text-gray-600">{t('order.orderId')}</span>
                   <span className="font-mono text-xs text-gray-500">
                     {reminderOrder.id.substring(0, 12)}...
                   </span>
@@ -502,19 +502,19 @@ export default function Index() {
                   }}
                   className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition"
                 >
-                  Add Final Details
+                  {t('order.addFinalDetails')}
                 </button>
                 <button
                   onClick={() => setShowReminderModal(false)}
                   className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition"
                 >
-                  Later
+                  {t('order.later')}
                 </button>
               </div>
 
               {/* Info */}
               <p className="text-xs text-gray-500 text-center">
-                This data helps train our ML model
+                {t('order.mlTraining')}
               </p>
             </div>
           </div>

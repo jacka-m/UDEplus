@@ -151,13 +151,13 @@ export default function Profile() {
       <div className="border-b border-gray-200 bg-white/60 backdrop-blur-sm sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-            UDE+
+            {t('nav.ude')}
           </h1>
           <button
             onClick={() => navigate("/")}
             className="text-gray-600 hover:text-gray-900 transition"
           >
-            ← Back to Dashboard
+            {t('profile.backToDashboard')}
           </button>
         </div>
       </div>
@@ -174,7 +174,7 @@ export default function Profile() {
                 <h2 className="text-3xl font-bold text-gray-900">
                   {user?.username}
                 </h2>
-                <p className="text-gray-600">UDE+ Driver Profile</p>
+                <p className="text-gray-600">{t('profile.driverProfile')}</p>
               </div>
             </div>
           </div>
@@ -186,7 +186,7 @@ export default function Profile() {
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2 text-gray-600">
                   <MapPin className="w-4 h-4" />
-                  <span className="text-sm font-semibold">ZIP Code</span>
+                  <span className="text-sm font-semibold">{t('profile.zipCode')}</span>
                 </div>
                 {!editingZipCode && (
                   <button
@@ -196,7 +196,7 @@ export default function Profile() {
                     }}
                     className="text-xs text-purple-600 hover:text-purple-700 font-semibold"
                   >
-                    Edit
+                    {t('profile.edit')}
                   </button>
                 )}
               </div>
@@ -236,7 +236,7 @@ export default function Profile() {
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2 text-gray-600">
                   <Globe className="w-4 h-4" />
-                  <span className="text-sm font-semibold">Language</span>
+                  <span className="text-sm font-semibold">{t('profile.language')}</span>
                 </div>
                 {!editingLanguage && (
                   <button
@@ -246,7 +246,7 @@ export default function Profile() {
                     }}
                     className="text-xs text-purple-600 hover:text-purple-700 font-semibold"
                   >
-                    Edit
+                    {t('profile.edit')}
                   </button>
                 )}
               </div>
@@ -291,7 +291,7 @@ export default function Profile() {
             {/* Account Created Card */}
             <div className="bg-gray-50 rounded-lg p-4">
               <div className="flex items-center gap-2 text-gray-600 mb-2">
-                <span className="text-sm font-semibold">Account Created</span>
+                <span className="text-sm font-semibold">{t('profile.accountCreated')}</span>
               </div>
               <p className="text-lg font-bold text-gray-900">
                 {user?.createdAt
@@ -307,17 +307,17 @@ export default function Profile() {
               <div className="flex items-center gap-2">
                 <DollarSign className="w-5 h-5 text-green-600" />
                 <span className="text-gray-700 font-semibold">
-                  State Minimum Wage
+                  {t('profile.minimumWage')}
                 </span>
               </div>
               <span className="text-2xl font-bold text-green-600">
-                ${minimumWage.toFixed(2)}/hr
+                ${minimumWage.toFixed(2)}{t('profile.perHour')}
               </span>
             </div>
 
             <div className="border-t border-green-200 pt-4">
               <p className="text-sm text-gray-600 mb-2">
-                Cost of Living Adjustment
+                {t('profile.costOfLiving')}
               </p>
               <div className="flex items-center gap-2">
                 <div className="flex-1 bg-green-200 rounded-full h-2">
@@ -339,14 +339,14 @@ export default function Profile() {
           <div className="bg-white rounded-2xl shadow-lg p-8">
             <div className="mb-6">
               <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                Orders History
+                {t('profile.ordersHistory')}
               </h3>
 
               {/* Filters */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Filter by Score
+                    {t('profile.filterByScore')}
                   </label>
                   <select
                     value={filterScore}
@@ -359,7 +359,7 @@ export default function Profile() {
                     }
                     className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-white text-gray-900"
                   >
-                    <option value="all">All Scores</option>
+                    <option value="all">{t('profile.allScores')}</option>
                     <option value="1">Score 1 (Poor)</option>
                     <option value="2">Score 2 (Fair)</option>
                     <option value="3">Score 3 (Good)</option>
@@ -369,18 +369,18 @@ export default function Profile() {
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Filter by Session
+                    {t('profile.filterBySession')}
                   </label>
                   <select
                     value={filterSession}
                     onChange={(e) => setFilterSession(e.target.value)}
                     className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-white text-gray-900"
                   >
-                    <option value="all">All Sessions</option>
+                    <option value="all">{t('profile.filterBySession')}</option>
                     {sessions.map((session) => (
                       <option key={session.id} value={session.id}>
                         {new Date(session.startTime).toLocaleDateString()} -{" "}
-                        {session.totalOrders} orders
+                        {session.totalOrders} {t('profile.orders')}
                       </option>
                     ))}
                   </select>
@@ -392,7 +392,7 @@ export default function Profile() {
             <div className="space-y-4">
               {filteredSessions.length === 0 ? (
                 <div className="text-center py-12">
-                  <p className="text-gray-500">No sessions found</p>
+                  <p className="text-gray-500">{t('profile.noSessions')}</p>
                 </div>
               ) : (
                 filteredSessions.map((session) => {
@@ -530,9 +530,9 @@ export default function Profile() {
         {/* Empty State */}
         {allOrders.length === 0 && (
           <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-            <p className="text-gray-600 mb-4">No orders yet</p>
+            <p className="text-gray-600 mb-4">{t('profile.noOrders')}</p>
             <p className="text-gray-500">
-              Start a driving session to begin tracking orders
+              {t('profile.startSession')}
             </p>
           </div>
         )}
@@ -543,14 +543,14 @@ export default function Profile() {
             onClick={() => navigate("/")}
             className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition"
           >
-            Back to Dashboard
+            {t('profile.backToDash')}
           </button>
           <button
             onClick={handleLogout}
             className="flex-1 flex items-center justify-center gap-2 bg-red-100 text-red-700 py-3 rounded-lg font-semibold hover:bg-red-200 transition"
           >
             <LogOut className="w-4 h-4" />
-            Sign Out
+            {t('nav.signOut')}
           </button>
         </div>
       </div>
