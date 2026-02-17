@@ -60,10 +60,10 @@ export default function Login() {
 
       <div className="flex items-center justify-center min-h-[calc(100vh-80px)] px-4 py-8">
         <div className="w-full max-w-md">
-          <div className="bg-white rounded-2xl shadow-lg p-8 space-y-6">
+          <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 space-y-6">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">Welcome Back</h2>
-              <p className="text-gray-600 mt-2">Sign in to your UDE+ account</p>
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Welcome Back</h2>
+              <p className="text-sm sm:text-base text-gray-600 mt-2">Sign in to your UDE+ account</p>
             </div>
 
             {error && (

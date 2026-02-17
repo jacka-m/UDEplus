@@ -116,15 +116,15 @@ export default function RestaurantWait() {
         </div>
       </div>
 
-      <div className="flex items-center justify-center min-h-[calc(100vh-80px)] px-4 py-8">
+      <div className="flex items-center justify-center min-h-[calc(100vh-80px)] px-4 py-6 sm:py-8">
         <div className="w-full max-w-md">
-          <div className="bg-white rounded-2xl shadow-lg p-8 space-y-8">
+          <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 space-y-6 sm:space-y-8">
             {/* Stopwatch */}
             <div className="text-center">
-              <div className="text-6xl font-bold font-mono text-transparent bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text mb-4">
+              <div className="text-4xl sm:text-6xl font-bold font-mono text-transparent bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text mb-4">
                 {formatTime(seconds)}
               </div>
-              <p className="text-gray-600">Time waiting at restaurant</p>
+              <p className="text-sm sm:text-base text-gray-600">Time waiting at restaurant</p>
 
               {/* Manual Time Button - Small and Translucent */}
               <button

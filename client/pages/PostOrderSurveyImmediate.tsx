@@ -122,9 +122,9 @@ export default function PostOrderSurveyImmediate() {
         </div>
       </div>
 
-      <div className="flex items-center justify-center min-h-[calc(100vh-80px)] px-4 py-8">
+      <div className="flex items-center justify-center min-h-[calc(100vh-80px)] px-4 py-6 sm:py-8">
         <div className="w-full max-w-2xl">
-          <div className="bg-white rounded-2xl shadow-lg p-8 space-y-6">
+          <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 space-y-6">
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex gap-3">
                 <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />

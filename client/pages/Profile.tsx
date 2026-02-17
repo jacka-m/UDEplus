@@ -164,17 +164,17 @@ export default function Profile() {
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Profile Header */}
-        <div className="bg-white rounded-2xl shadow-lg p-8 mb-8">
-          <div className="flex items-start justify-between mb-8">
-            <div className="flex items-start gap-6">
-              <div className="w-20 h-20 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full flex items-center justify-center text-white text-3xl font-bold">
+        <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 mb-8">
+          <div className="flex flex-col sm:flex-row items-start justify-between gap-6 mb-8">
+            <div className="flex items-start gap-4 sm:gap-6">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full flex items-center justify-center text-white text-2xl sm:text-3xl font-bold flex-shrink-0">
                 {user?.username.charAt(0).toUpperCase()}
               </div>
-              <div>
-                <h2 className="text-3xl font-bold text-gray-900">
+              <div className="min-w-0">
+                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 break-words">
                   {user?.username}
                 </h2>
-                <p className="text-gray-600">
+                <p className="text-sm sm:text-base text-gray-600">
                   {user?.username === "jack_am" ? "UDE+ Founder, Admin" : t('profile.driverProfile')}
                 </p>
               </div>

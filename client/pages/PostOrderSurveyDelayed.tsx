@@ -123,9 +123,9 @@ export default function PostOrderSurveyDelayed() {
         </div>
       </div>
 
-      <div className="flex items-center justify-center min-h-[calc(100vh-80px)] px-4 py-8">
+      <div className="flex items-center justify-center min-h-[calc(100vh-80px)] px-4 py-6 sm:py-8">
         <div className="w-full max-w-2xl">
-          <div className="bg-white rounded-2xl shadow-lg p-8 space-y-6">
+          <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 space-y-6">
             {/* Timer Badge */}
             <div className="flex items-center gap-2 text-sm bg-green-50 text-green-700 px-3 py-2 rounded-lg w-fit">
               <Clock className="w-4 h-4" />

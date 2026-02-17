@@ -170,9 +170,9 @@ export default function ManualSessionCreator() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {/* Progress Steps */}
-        <div className="flex gap-4 mb-8">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mb-6 sm:mb-8">
           {["details", "orders", "review"].map((s) => (
             <button
               key={s}
@@ -181,7 +181,7 @@ export default function ManualSessionCreator() {
                 (s === "orders" && step === "details") ||
                 (s === "review" && step !== "review" && orders.length === 0)
               }
-              className={`flex-1 py-3 px-4 rounded-lg font-semibold transition ${
+              className={`flex-1 py-2 sm:py-3 px-2 sm:px-4 rounded-lg font-semibold text-xs sm:text-base transition ${
                 step === s
                   ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white"
                   : "bg-white text-gray-700 border border-gray-200 hover:border-gray-300"

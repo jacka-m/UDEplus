@@ -220,26 +220,26 @@ export default function Index() {
 
           {/* Session Info Bar */}
           {session && isSessionActive && (
-            <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-3 flex items-center justify-between text-sm">
-              <div className="flex items-center gap-4">
+            <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs sm:text-sm">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-4">
                 <div className="flex items-center gap-1.5 text-gray-700">
-                  <TrendingUp className="w-4 h-4 text-purple-600" />
+                  <TrendingUp className="w-4 h-4 text-purple-600 flex-shrink-0" />
                   <span className="font-semibold">{session.totalOrders}</span>
-                  <span>orders</span>
+                  <span className="hidden sm:inline">orders</span>
                 </div>
                 <div className="flex items-center gap-1.5 text-gray-700">
-                  <DollarSign className="w-4 h-4 text-green-600" />
+                  <DollarSign className="w-4 h-4 text-green-600 flex-shrink-0" />
                   <span className="font-semibold">${session.totalEarnings.toFixed(2)}</span>
                 </div>
                 <div className="flex items-center gap-1.5 text-gray-700">
-                  <Clock className="w-4 h-4 text-blue-600" />
+                  <Clock className="w-4 h-4 text-blue-600 flex-shrink-0" />
                   <span>{session.totalHours.toFixed(1)}h</span>
                 </div>
               </div>
               <button
                 onClick={handleEndSession}
                 disabled={sessionEndLoading}
-                className="px-3 py-1 bg-red-100 text-red-700 rounded-md text-xs font-semibold hover:bg-red-200 transition disabled:opacity-50"
+                className="w-full sm:w-auto px-3 py-1 bg-red-100 text-red-700 rounded-md text-xs font-semibold hover:bg-red-200 transition disabled:opacity-50"
               >
                 {sessionEndLoading ? t('order.endingSession') : t('nav.endSession')}
               </button>
@@ -248,11 +248,11 @@ export default function Index() {
         </div>
       </div>
 
-      <div className="flex items-center justify-center min-h-[calc(100vh-80px)] px-4 py-8">
+      <div className="flex items-center justify-center min-h-[calc(100vh-80px)] px-4 py-6 sm:py-8">
         {/* Form Step */}
         {step === "form" && (
           <div className="w-full max-w-md">
-            <div className="bg-white rounded-2xl shadow-lg p-8 space-y-6">
+            <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 space-y-6">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   {t('order.numberOfStops')}
@@ -388,7 +388,7 @@ export default function Index() {
         {/* Recommendation Step */}
         {step === "recommendation" && (
           <div className="w-full max-w-md">
-            <div className="bg-white rounded-2xl shadow-lg p-8 space-y-8">
+            <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 space-y-6 sm:space-y-8">
               {/* Score Display */}
               <div className="flex justify-center">
                 <div className="relative w-40 h-40 flex items-center justify-center">

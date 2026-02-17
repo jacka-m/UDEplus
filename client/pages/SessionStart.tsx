@@ -78,9 +78,9 @@ export default function SessionStart() {
         </div>
       </div>
 
-      <div className="flex items-center justify-center min-h-[calc(100vh-80px)] px-4 py-8">
+      <div className="flex items-center justify-center min-h-[calc(100vh-80px)] px-4 py-6 sm:py-8">
         <div className="w-full max-w-md">
-          <div className="bg-white rounded-2xl shadow-lg p-8 space-y-8">
+          <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 space-y-6 sm:space-y-8">
             {/* Welcome Section */}
             <div className="text-center space-y-3">
               <div className="flex justify-center">
@@ -88,10 +88,10 @@ export default function SessionStart() {
                   <Play className="w-8 h-8 text-white" />
                 </div>
               </div>
-              <h2 className="text-2xl font-bold text-gray-900">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
                 {t('session.startDriving')}
               </h2>
-              <p className="text-gray-600">
+              <p className="text-sm sm:text-base text-gray-600">
                 {t('session.startSubtitle')}
               </p>
             </div>

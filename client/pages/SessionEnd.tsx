@@ -70,18 +70,18 @@ export default function SessionEnd() {
         </div>
       </div>
 
-      <div className="flex items-center justify-center min-h-[calc(100vh-80px)] px-4 py-8">
+      <div className="flex items-center justify-center min-h-[calc(100vh-80px)] px-4 py-6 sm:py-8">
         <div className="w-full max-w-md">
-          <div className="bg-white rounded-2xl shadow-lg p-8 space-y-8">
+          <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 space-y-6 sm:space-y-8">
             {/* Success Icon */}
             <div className="text-center">
               <div className="flex justify-center mb-4">
-                <CheckCircle className="w-16 h-16 text-green-500" />
+                <CheckCircle className="w-14 h-14 sm:w-16 sm:h-16 text-green-500" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-900">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
                 {timeGreeting}
               </h2>
-              <p className="text-gray-600 mt-2">
+              <p className="text-sm sm:text-base text-gray-600 mt-2">
                 Your driving session has ended
               </p>
             </div>
