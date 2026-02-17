@@ -736,7 +736,7 @@ export default function AdminMLPanel() {
                   <option value="all">All Users</option>
                   {Array.from(new Set(allOrders.map((o) => o.userId))).map((userId) => (
                     <option key={userId} value={userId}>
-                      {userId}
+                      {allOrders.find((o) => o.userId === userId)?.username || userId}
                     </option>
                   ))}
                 </select>
@@ -820,15 +820,15 @@ export default function AdminMLPanel() {
               <table className="w-full text-base">
                 <thead className="bg-gradient-to-r from-purple-600 to-blue-600 text-white sticky top-0 z-10">
                   <tr>
-                    <th className="px-6 py-4 text-left font-bold text-white">User</th>
-                    <th className="px-6 py-4 text-left font-bold text-white">Date</th>
-                    <th className="px-6 py-4 text-left font-bold text-white">Score</th>
-                    <th className="px-6 py-4 text-left font-bold text-white">Restaurant</th>
-                    <th className="px-6 py-4 text-right font-bold text-white">Payout</th>
-                    <th className="px-6 py-4 text-right font-bold text-white">Miles</th>
-                    <th className="px-6 py-4 text-right font-bold text-white">Stops</th>
-                    <th className="px-6 py-4 text-right font-bold text-white">Time</th>
-                    <th className="px-6 py-4 text-center font-bold text-white">Recommendation</th>
+                    <th className="px-6 py-4 text-left font-bold text-white whitespace-nowrap">User</th>
+                    <th className="px-6 py-4 text-left font-bold text-white whitespace-nowrap">Date</th>
+                    <th className="px-6 py-4 text-left font-bold text-white whitespace-nowrap">Score</th>
+                    <th className="px-6 py-4 text-left font-bold text-white whitespace-nowrap">Restaurant</th>
+                    <th className="px-6 py-4 text-right font-bold text-white whitespace-nowrap">Payout</th>
+                    <th className="px-6 py-4 text-right font-bold text-white whitespace-nowrap">Miles</th>
+                    <th className="px-6 py-4 text-right font-bold text-white whitespace-nowrap">Stops</th>
+                    <th className="px-6 py-4 text-right font-bold text-white whitespace-nowrap">Time</th>
+                    <th className="px-6 py-4 text-center font-bold text-white whitespace-nowrap">Recommendation</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -840,8 +840,8 @@ export default function AdminMLPanel() {
                           idx % 2 === 0 ? "bg-white" : "bg-gray-50"
                         } hover:bg-blue-50`}
                       >
-                        <td className="px-6 py-4 text-sm text-gray-700 font-medium max-w-xs truncate">
-                          {order.userId}
+                        <td className="px-6 py-4 text-sm text-gray-700 font-medium max-w-xs truncate whitespace-nowrap">
+                          {order.username || order.userId}
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex flex-col items-center gap-0.5 min-w-fit">

@@ -151,22 +151,29 @@ class MLModel {
       weights.pickupZoneScore;
 
     // Convert to 1-10 scale
-    const normalizedScore = Math.min(Math.max(score / 3, 1), 10);
+    const normalizedScore = Number.isFinite(score)
+      ? Math.min(Math.max(score / 3, 1), 10)
+      : 1;
     return Math.round(normalizedScore * 2) / 2; // Round to 0.5 increments
   }
 
   private predictWithDefaultAlgorithm(order: OrderData): number {
-    const hourlyRate = (order.shownPayout / (order.estimatedTime / 60)) * 1.2;
-    const milesEfficiency = order.shownPayout / Math.max(order.miles, 0.1);
+    const safeEstimatedTime = order.estimatedTime && order.estimatedTime > 0 ? order.estimatedTime : 1;
+    const safeMiles = order.miles && order.miles > 0 ? order.miles : 0.1;
+
+    const hourlyRate = (order.shownPayout / (safeEstimatedTime / 60)) * 1.2;
+    const milesEfficiency = order.shownPayout / safeMiles;
     const stopsBonus = Math.min(order.numberOfStops * 0.1, 0.5);
-    const zoneMultiplier = order.pickupZone.toLowerCase() === "downtown" ? 1.2 : 1;
+    const zoneMultiplier = (order.pickupZone || "").toLowerCase() === "downtown" ? 1.2 : 1;
 
     const baseScore =
       (hourlyRate * 0.5 + milesEfficiency * 0.3 + stopsBonus * 0.2) *
       zoneMultiplier;
 
-    // Convert to 1-10 scale
-    const normalizedScore = Math.min(Math.max(baseScore / 3, 1), 10);
+    // Convert to 1-10 scale and guard non-finite
+    const normalizedScore = Number.isFinite(baseScore)
+      ? Math.min(Math.max(baseScore / 3, 1), 10)
+      : 1;
     return Math.round(normalizedScore * 2) / 2; // Round to 0.5 increments
   }
 

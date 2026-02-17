@@ -7,7 +7,7 @@ import { ChevronLeft, Plus, Trash2, CheckCircle } from "lucide-react";
 import { OrderData, DrivingSession } from "@shared/types";
 import ManualOrderForm from "@/components/ManualOrderForm";
 import SessionDetailsForm from "@/components/SessionDetailsForm";
-import { MLModel } from "@/utils/mlModel";
+import { mlModel } from "@/utils/mlModel";
 
 export default function ManualSessionCreator() {
   const navigate = useNavigate();
@@ -45,8 +45,8 @@ export default function ManualSessionCreator() {
         `${sessionDetails.endTime}T${sessionDetails.endTimeInput}`
       );
 
-      // Apply ML scoring to all orders
-      const mlModel = new MLModel();
+      // Apply ML scoring to all orders (use singleton model which may have been loaded/trained)
+      mlModel.loadModel();
       const ordersWithScores = orders.map((order) => {
         const score = mlModel.scoreOrder(order);
         return {

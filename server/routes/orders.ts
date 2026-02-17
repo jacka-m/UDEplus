@@ -174,7 +174,38 @@ export const handleExportAllData: RequestHandler = async (req, res) => {
 
     if (error) throw error;
 
-    const allOrders: OrderData[] = (rows ?? []).map((r) => r.data as OrderData);
+    // Map rows to OrderData and include username when available
+    const allOrdersRaw: { id: string; user_id: string; data: any }[] = (rows ?? []).map((r: any) => ({
+      id: r.id,
+      user_id: r.user_id,
+      data: r.data,
+    }));
+
+    // Collect unique user IDs
+    const userIds = Array.from(new Set(allOrdersRaw.map((r) => r.user_id))).filter(Boolean);
+
+    // Fetch usernames for these user IDs
+    let userMap: Record<string, string> = {};
+    if (userIds.length > 0) {
+      const { data: users, error: usersError } = await supabase
+        .from("users")
+        .select("id, username")
+        .in("id", userIds);
+      if (!usersError && users) {
+        users.forEach((u: any) => {
+          userMap[u.id] = u.username;
+        });
+      }
+    }
+
+    const allOrders: OrderData[] = allOrdersRaw.map((r) => {
+      const order = r.data as OrderData;
+      // Attach username if known (non-breaking addition)
+      return {
+        ...order,
+        username: userMap[r.user_id] || undefined,
+      } as OrderData & { username?: string };
+    });
 
     res.json({
       message: "All orders data",

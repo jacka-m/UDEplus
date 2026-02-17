@@ -37,16 +37,28 @@ export const ordersManager = {
     }
   },
 
-  // Fetch all orders from backend API (Supabase)
-  getAllOrdersFromAPI: async (): Promise<OrderData[]> => {
+  // Fetch orders from backend API (Supabase).
+  // If `userId` is provided, call the per-user endpoint; otherwise call admin export.
+  getAllOrdersFromAPI: async (userId?: string): Promise<OrderData[]> => {
     try {
-      const response = await fetch("/api/orders");
+      const url = userId ? `/api/users/${userId}/orders` : `/api/orders/export`;
+      const response = await fetch(url);
       if (!response.ok) {
         console.error("Failed to fetch orders from API:", response.status);
         return [];
       }
-      const data = await response.json();
-      return Array.isArray(data) ? data : [];
+      const payload = await response.json();
+
+      // Normalize payload shapes:
+      // - /api/users/:userId/orders -> { message, orders }
+      // - /api/orders/export -> { message, data }
+      if (Array.isArray(payload.orders)) return payload.orders as OrderData[];
+      if (Array.isArray(payload.data)) return payload.data as OrderData[];
+
+      // Fallback: if response was an array
+      if (Array.isArray(payload)) return payload as OrderData[];
+
+      return [];
     } catch (error) {
       console.error("Failed to fetch orders from API:", error);
       return [];

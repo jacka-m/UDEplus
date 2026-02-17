@@ -1,5 +1,5 @@
-const CACHE_NAME = 'ude-plus-v1';
-const RUNTIME_CACHE = 'ude-plus-runtime';
+const CACHE_NAME = 'ude-plus-v2';
+const RUNTIME_CACHE = 'ude-plus-runtime-v2';
 
 const ASSETS_TO_CACHE = [
   '/',
