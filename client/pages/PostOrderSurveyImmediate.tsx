@@ -6,6 +6,7 @@ import { delayedDataReminder } from "@/utils/delayedDataReminder";
 import { ordersManager } from "@/utils/ordersManager";
 import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@/context/AuthContext";
+import { toast } from "@/hooks/use-toast";
 
 export default function PostOrderSurveyImmediate() {
   const navigate = useNavigate();
@@ -29,7 +30,12 @@ export default function PostOrderSurveyImmediate() {
   useEffect(() => {
     const state = location.state as { orderData?: OrderData };
     if (!state?.orderData) {
-      navigate("/");
+      toast({
+        title: "Session Lost",
+        description: "Order data was lost. Starting fresh.",
+        variant: "destructive",
+      });
+      navigate("/session-start");
       return;
     }
     setOrderData(state.orderData);

@@ -4,6 +4,7 @@ import { AlertCircle, Loader2, X, User } from "lucide-react";
 import { OrderData } from "@shared/types";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
+import { toast } from "@/hooks/use-toast";
 
 export default function OrderPickup() {
   const navigate = useNavigate();
@@ -18,7 +19,12 @@ export default function OrderPickup() {
   useEffect(() => {
     const state = location.state as { orderData?: OrderData };
     if (!state?.orderData) {
-      navigate("/");
+      toast({
+        title: "Session Lost",
+        description: "Order data was lost. Starting fresh.",
+        variant: "destructive",
+      });
+      navigate("/session-start");
       return;
     }
     setOrderData(state.orderData);

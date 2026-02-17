@@ -5,6 +5,7 @@ import { OrderData } from "@shared/types";
 import { useAuth } from "@/context/AuthContext";
 import { ordersManager } from "@/utils/ordersManager";
 import { useLanguage } from "@/context/LanguageContext";
+import { toast } from "@/hooks/use-toast";
 
 export default function PostOrderSurveyDelayed() {
   const navigate = useNavigate();
@@ -25,7 +26,12 @@ export default function PostOrderSurveyDelayed() {
   useEffect(() => {
     const state = location.state as { orderData?: OrderData };
     if (!state?.orderData) {
-      navigate("/");
+      toast({
+        title: "Session Lost",
+        description: "Order data was lost. Starting fresh.",
+        variant: "destructive",
+      });
+      navigate("/session-start");
       return;
     }
     setOrderData(state.orderData);

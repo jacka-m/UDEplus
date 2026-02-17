@@ -8,6 +8,7 @@ import { useDelayedReminder } from "@/hooks/useDelayedReminder";
 import { OrderData } from "@shared/types";
 import { mlModel } from "@/utils/mlModel";
 import { delayedDataReminder } from "@/utils/delayedDataReminder";
+import { ConfirmModal } from "@/components/ConfirmModal";
 
 type FlowStep = "form" | "recommendation";
 
@@ -17,6 +18,14 @@ interface FormData {
   miles: number;
   estimatedTime: number;
   pickupZone: string;
+}
+
+interface FormErrors {
+  stops?: string;
+  payout?: string;
+  miles?: string;
+  estimatedTime?: string;
+  pickupZone?: string;
 }
 
 export default function Index() {
@@ -32,10 +41,13 @@ export default function Index() {
     estimatedTime: 0,
     pickupZone: "",
   });
+  const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [score, setScore] = useState(0);
   const [sessionEndLoading, setSessionEndLoading] = useState(false);
   const [reminderOrder, setReminderOrder] = useState<OrderData | null>(null);
   const [showReminderModal, setShowReminderModal] = useState(false);
+  const [showEndSessionConfirm, setShowEndSessionConfirm] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const timerRef = useRef<NodeJS.Timeout>();
 
   // Setup delayed reminder hook
@@ -56,6 +68,40 @@ export default function Index() {
     // Request notification permission for reminders
     delayedDataReminder.requestNotificationPermission();
   }, [isSessionActive, navigate]);
+
+  const validateForm = (data: FormData): FormErrors => {
+    const errors: FormErrors = {};
+
+    if (data.stops === 0) {
+      errors.stops = t('error.pickupZoneRequired') || "Please enter number of stops";
+    } else if (data.stops > 20) {
+      errors.stops = "Maximum 20 stops allowed";
+    }
+
+    if (data.payout === 0) {
+      errors.payout = "Payout must be greater than 0";
+    } else if (data.payout > 2500) {
+      errors.payout = "Payout exceeds maximum";
+    }
+
+    if (data.miles === 0) {
+      errors.miles = "Miles must be greater than 0";
+    } else if (data.miles > 999) {
+      errors.miles = "Miles exceeds maximum";
+    }
+
+    if (data.estimatedTime === 0) {
+      errors.estimatedTime = "Time must be greater than 0 minutes";
+    } else if (data.estimatedTime > 480) {
+      errors.estimatedTime = "Time exceeds 8 hours";
+    }
+
+    if (!data.pickupZone.trim()) {
+      errors.pickupZone = "Please enter a pickup zone";
+    }
+
+    return errors;
+  };
 
   const calculateScore = (data: FormData): number => {
     // Create a temporary order object for ML prediction
@@ -90,16 +136,13 @@ export default function Index() {
   };
 
   const handleFormSubmit = () => {
-    if (
-      !formData.pickupZone ||
-      formData.stops === 0 ||
-      formData.payout === 0 ||
-      formData.miles === 0 ||
-      formData.estimatedTime === 0
-    ) {
+    const errors = validateForm(formData);
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
       return;
     }
 
+    setFormErrors({});
     const calculatedScore = calculateScore(formData);
     setScore(calculatedScore);
     setStep("recommendation");
@@ -159,31 +202,24 @@ export default function Index() {
     });
   };
 
-  const handleEndSession = async () => {
+  const handleEndSessionConfirmed = async () => {
     if (!session) return;
 
-    if (
-      confirm(
-        `End your driving session? You've completed ${session.totalOrders} orders.`
-      )
-    ) {
-      setSessionEndLoading(true);
-      try {
-        await endSession();
-        // Redirect to session end summary
-        navigate("/session-end", { state: { session } });
-      } catch (error) {
-        console.error("Failed to end session:", error);
-        setSessionEndLoading(false);
-      }
+    setSessionEndLoading(true);
+    try {
+      await endSession();
+      setShowEndSessionConfirm(false);
+      navigate("/session-end", { state: { session } });
+    } catch (error) {
+      console.error("Failed to end session:", error);
+      setSessionEndLoading(false);
     }
   };
 
-  const handleLogout = () => {
-    if (confirm(t('order.areYouSure'))) {
-      logout();
-      navigate("/login");
-    }
+  const handleLogoutConfirmed = () => {
+    logout();
+    setShowLogoutConfirm(false);
+    navigate("/login");
   };
 
   return (
@@ -207,7 +243,7 @@ export default function Index() {
                     {t('order.account')}
                   </button>
                   <button
-                    onClick={handleLogout}
+                    onClick={() => setShowLogoutConfirm(true)}
                     className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-red-600 transition"
                     title={t('nav.signOut')}
                   >
@@ -237,7 +273,7 @@ export default function Index() {
                 </div>
               </div>
               <button
-                onClick={handleEndSession}
+                onClick={() => setShowEndSessionConfirm(true)}
                 disabled={sessionEndLoading}
                 className="w-full sm:w-auto px-3 py-1 bg-red-100 text-red-700 rounded-md text-xs font-semibold hover:bg-red-200 transition disabled:opacity-50"
               >
@@ -269,11 +305,21 @@ export default function Index() {
                         ...formData,
                         stops: value,
                       });
+                      if (formErrors.stops) {
+                        setFormErrors({ ...formErrors, stops: undefined });
+                      }
                     }
                   }}
                   placeholder={t('order.enterNumberOfStops')}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-50 transition"
+                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent bg-gray-50 transition ${
+                    formErrors.stops
+                      ? "border-red-500 focus:ring-red-500"
+                      : "border-gray-200 focus:ring-purple-500"
+                  }`}
                 />
+                {formErrors.stops && (
+                  <p className="text-sm text-red-600 mt-1">{formErrors.stops}</p>
+                )}
               </div>
 
               <div>
@@ -295,12 +341,22 @@ export default function Index() {
                           ...formData,
                           payout: value,
                         });
+                        if (formErrors.payout) {
+                          setFormErrors({ ...formErrors, payout: undefined });
+                        }
                       }
                     }}
                     placeholder="0.00"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-50 transition"
+                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent bg-gray-50 transition ${
+                      formErrors.payout
+                        ? "border-red-500 focus:ring-red-500"
+                        : "border-gray-200 focus:ring-purple-500"
+                    }`}
                   />
                 </div>
+                {formErrors.payout && (
+                  <p className="text-sm text-red-600 mt-1">{formErrors.payout}</p>
+                )}
               </div>
 
               <div>
@@ -320,11 +376,21 @@ export default function Index() {
                         ...formData,
                         miles: value,
                       });
+                      if (formErrors.miles) {
+                        setFormErrors({ ...formErrors, miles: undefined });
+                      }
                     }
                   }}
                   placeholder={t('order.enterMiles')}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-50 transition"
+                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent bg-gray-50 transition ${
+                    formErrors.miles
+                      ? "border-red-500 focus:ring-red-500"
+                      : "border-gray-200 focus:ring-purple-500"
+                  }`}
                 />
+                {formErrors.miles && (
+                  <p className="text-sm text-red-600 mt-1">{formErrors.miles}</p>
+                )}
               </div>
 
               <div>
@@ -343,11 +409,21 @@ export default function Index() {
                         ...formData,
                         estimatedTime: value,
                       });
+                      if (formErrors.estimatedTime) {
+                        setFormErrors({ ...formErrors, estimatedTime: undefined });
+                      }
                     }
                   }}
                   placeholder={t('order.enterMinutes')}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-50 transition"
+                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent bg-gray-50 transition ${
+                    formErrors.estimatedTime
+                      ? "border-red-500 focus:ring-red-500"
+                      : "border-gray-200 focus:ring-purple-500"
+                  }`}
                 />
+                {formErrors.estimatedTime && (
+                  <p className="text-sm text-red-600 mt-1">{formErrors.estimatedTime}</p>
+                )}
               </div>
 
               <div>
@@ -357,15 +433,25 @@ export default function Index() {
                 <input
                   type="text"
                   value={formData.pickupZone}
-                  onChange={(e) =>
+                  onChange={(e) => {
                     setFormData({
                       ...formData,
                       pickupZone: e.target.value,
-                    })
-                  }
+                    });
+                    if (formErrors.pickupZone && e.target.value.trim()) {
+                      setFormErrors({ ...formErrors, pickupZone: undefined });
+                    }
+                  }}
                   placeholder={t('order.enterCityName')}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-50 transition"
+                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent bg-gray-50 transition ${
+                    formErrors.pickupZone
+                      ? "border-red-500 focus:ring-red-500"
+                      : "border-gray-200 focus:ring-purple-500"
+                  }`}
                 />
+                {formErrors.pickupZone && (
+                  <p className="text-sm text-red-600 mt-1">{formErrors.pickupZone}</p>
+                )}
               </div>
 
               <button
@@ -472,8 +558,8 @@ export default function Index() {
 
         {/* Delayed Data Reminder Modal */}
         {showReminderModal && reminderOrder && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center px-4 z-50">
-            <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 space-y-6">
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center px-4 z-50" role="dialog" aria-modal="true">
+            <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-4 sm:p-8 space-y-6 max-h-[90vh] overflow-y-auto">
               {/* Icon */}
               <div className="flex justify-center">
                 <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
@@ -483,7 +569,7 @@ export default function Index() {
 
               {/* Content */}
               <div className="text-center space-y-2">
-                <h3 className="text-xl font-bold text-gray-900">
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900">
                   {t('order.delayedDataReminder')}
                 </h3>
                 <p className="text-gray-600 text-sm">
@@ -508,7 +594,13 @@ export default function Index() {
               </div>
 
               {/* Buttons */}
-              <div className="flex gap-3">
+              <div className="flex flex-col-reverse sm:flex-row gap-3">
+                <button
+                  onClick={() => setShowReminderModal(false)}
+                  className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition"
+                >
+                  {t('order.later')}
+                </button>
                 <button
                   onClick={() => {
                     navigate("/post-order-survey-delayed", {
@@ -520,12 +612,6 @@ export default function Index() {
                 >
                   {t('order.addFinalDetails')}
                 </button>
-                <button
-                  onClick={() => setShowReminderModal(false)}
-                  className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition"
-                >
-                  {t('order.later')}
-                </button>
               </div>
 
               {/* Info */}
@@ -535,6 +621,31 @@ export default function Index() {
             </div>
           </div>
         )}
+
+        {/* End Session Confirm Modal */}
+        <ConfirmModal
+          isOpen={showEndSessionConfirm}
+          title={t('order.endSessionQuestion')}
+          description={`${t('order.completedOrders')}: ${session?.totalOrders || 0}`}
+          confirmText={t('nav.endSession')}
+          cancelText={t('order.keepWorking')}
+          onConfirm={handleEndSessionConfirmed}
+          onCancel={() => setShowEndSessionConfirm(false)}
+          isLoading={sessionEndLoading}
+          isDangerous
+        />
+
+        {/* Logout Confirm Modal */}
+        <ConfirmModal
+          isOpen={showLogoutConfirm}
+          title={t('nav.signOut')}
+          description={t('order.areYouSure')}
+          confirmText={t('nav.signOut')}
+          cancelText={t('order.cancel')}
+          onConfirm={handleLogoutConfirmed}
+          onCancel={() => setShowLogoutConfirm(false)}
+          isDangerous
+        />
       </div>
     </div>
   );

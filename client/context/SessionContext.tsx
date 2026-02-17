@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from "react";
 import { DrivingSession, OrderData } from "@shared/types";
 import { ordersManager } from "@/utils/ordersManager";
+import { toast } from "@/hooks/use-toast";
 
 interface SessionContextType {
   session: DrivingSession | null;
@@ -19,6 +20,7 @@ const SessionContext = createContext<SessionContextType | undefined>(
 export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<DrivingSession | null>(null);
   const [orders, setOrders] = useState<OrderData[]>([]);
+  const saveTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
   // Load session from localStorage on mount
   useEffect(() => {
@@ -46,17 +48,42 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Save session to localStorage whenever it changes
+  // Save session to localStorage whenever it changes (debounced with error handling)
   useEffect(() => {
     if (session) {
-      localStorage.setItem("ude_session", JSON.stringify(session));
-      localStorage.setItem("ude_session_orders", JSON.stringify(orders));
+      // Clear existing timeout
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+
+      // Set new timeout for debounced save
+      saveTimeoutRef.current = setTimeout(() => {
+        try {
+          localStorage.setItem("ude_session", JSON.stringify(session));
+          localStorage.setItem("ude_session_orders", JSON.stringify(orders));
+        } catch (error) {
+          console.error("Failed to save session to localStorage:", error);
+          toast({
+            title: "Storage Error",
+            description: "Failed to save your session data. Some data may be lost.",
+            variant: "destructive",
+          });
+        }
+      }, 500);
     }
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
   }, [session, orders]);
 
-  const startSession = async (userId: string) => {
+  const startSession = useCallback(async (userId: string) => {
     if (!userId) {
-      throw new Error("User ID is required to start a session");
+      const error = "User ID is required to start a session";
+      toast({ title: "Error", description: error, variant: "destructive" });
+      throw new Error(error);
     }
 
     const now = new Date();
@@ -75,7 +102,6 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       updatedAt: now.toISOString(),
     };
 
-    // POST to server to create session
     try {
       const response = await fetch("/api/sessions", {
         method: "POST",
@@ -87,17 +113,21 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         throw new Error("Failed to create session on server");
       }
 
-      console.log("Session created successfully on server");
+      setSession(newSession);
+      setOrders([]);
     } catch (error) {
-      console.error("Error creating session on server:", error);
+      const message = error instanceof Error ? error.message : "Unknown error";
+      console.error("Error creating session:", error);
+      toast({
+        title: "Session Error",
+        description: "Failed to start session. Check your connection and try again.",
+        variant: "destructive",
+      });
       throw error;
     }
+  }, []);
 
-    setSession(newSession);
-    setOrders([]);
-  };
-
-  const endSession = async () => {
+  const endSession = useCallback(async () => {
     if (!session) return;
 
     const now = new Date();
@@ -105,34 +135,39 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       ...session,
       endTime: now.toISOString(),
       status: "ended",
-      delayedDataDueAt: new Date(now.getTime() + 2 * 60 * 60 * 1000).toISOString(), // 2 hours from now
+      delayedDataDueAt: new Date(now.getTime() + 2 * 60 * 60 * 1000).toISOString(),
       updatedAt: now.toISOString(),
     };
 
-    setSession(updatedSession);
-
-    // Save session and orders to persistent storage
-    ordersManager.saveSessionOrders(updatedSession, orders);
-
-    // Save session to backend
     try {
-      await fetch("/api/sessions", {
+      setSession(updatedSession);
+      ordersManager.saveSessionOrders(updatedSession, orders);
+
+      const response = await fetch("/api/sessions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updatedSession),
       });
-    } catch (error) {
-      console.error("Failed to save session:", error);
-    }
-  };
 
-  const addOrderToSession = (order: OrderData) => {
+      if (!response.ok) {
+        throw new Error("Failed to save session on server");
+      }
+    } catch (error) {
+      console.error("Failed to end session:", error);
+      toast({
+        title: "Save Error",
+        description: "Failed to save session. Your local data is preserved.",
+        variant: "destructive",
+      });
+    }
+  }, [session, orders]);
+
+  const addOrderToSession = useCallback((order: OrderData) => {
     if (!session) return;
 
     const updatedOrders = [...orders, order];
     setOrders(updatedOrders);
 
-    // Calculate updated stats
     const totalEarnings = updatedOrders.reduce(
       (sum, o) => sum + (o.actualPay || o.shownPayout),
       0
@@ -152,13 +187,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     };
 
     setSession(updatedSession);
-  };
+  }, [session, orders]);
 
-  const getSessionOrders = () => {
+  const getSessionOrders = useCallback(() => {
     return orders;
-  };
+  }, [orders]);
 
-  const updateSessionStats = () => {
+  const updateSessionStats = useCallback(() => {
     if (!session) return;
 
     const totalEarnings = orders.reduce(
@@ -184,20 +219,23 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     };
 
     setSession(updatedSession);
-  };
+  }, [session, orders]);
+
+  const contextValue = useMemo(
+    () => ({
+      session,
+      isSessionActive: session?.status === "active",
+      startSession,
+      endSession,
+      addOrderToSession,
+      getSessionOrders,
+      updateSessionStats,
+    }),
+    [session, startSession, endSession, addOrderToSession, getSessionOrders, updateSessionStats]
+  );
 
   return (
-    <SessionContext.Provider
-      value={{
-        session,
-        isSessionActive: session?.status === "active",
-        startSession,
-        endSession,
-        addOrderToSession,
-        getSessionOrders,
-        updateSessionStats,
-      }}
-    >
+    <SessionContext.Provider value={contextValue}>
       {children}
     </SessionContext.Provider>
   );

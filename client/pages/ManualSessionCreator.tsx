@@ -85,18 +85,21 @@ export default function ManualSessionCreator() {
         throw new Error("Failed to save session");
       }
 
-      // Save each order to backend
-      for (const order of orders) {
-        const orderResponse = await fetch("/api/orders", {
+      // Save all orders to backend in parallel using Promise.allSettled
+      const orderPromises = orders.map((order) =>
+        fetch("/api/orders", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(order),
-        });
+        }).then((res) => {
+          if (!res.ok) {
+            console.error("Failed to save order:", order.id);
+          }
+          return res;
+        })
+      );
 
-        if (!orderResponse.ok) {
-          console.error("Failed to save order:", order.id);
-        }
-      }
+      await Promise.allSettled(orderPromises);
 
       // Save to localStorage
       const existingSessions = localStorage.getItem("ude_all_sessions");

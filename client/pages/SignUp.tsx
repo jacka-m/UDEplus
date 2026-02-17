@@ -19,16 +19,10 @@ export default function SignUp() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [phone, setPhone] = useState("");
   const [zipCode, setZipCode] = useState("");
   const [language, setLanguage] = useState("en");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
-  const validatePhone = (phoneNumber: string) => {
-    const phoneRegex = /^(\+1|1)?[-.\s]?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}$/;
-    return phoneRegex.test(phoneNumber.replace(/\s/g, ""));
-  };
 
   const validateZipCode = (zip: string) => {
     const zipRegex = /^\d{5}(-\d{4})?$/;
@@ -55,11 +49,6 @@ export default function SignUp() {
       return;
     }
 
-    if (!validatePhone(phone)) {
-      setError(t("error.phoneInvalid"));
-      return;
-    }
-
     if (!validateZipCode(zipCode)) {
       setError(t("error.zipCodeInvalid"));
       return;
@@ -75,7 +64,6 @@ export default function SignUp() {
         body: JSON.stringify({
           username,
           password,
-          phone: phone.replace(/\D/g, ""),
           zipCode: zipCode.replace(/\D/g, ""),
           language,
         }),
@@ -87,9 +75,8 @@ export default function SignUp() {
       }
 
       const data = await response.json();
-      // Store verification data and navigate to verification page
-      sessionStorage.setItem("pending_user", JSON.stringify(data.user));
-      navigate("/verify-phone");
+      login(data.user);
+      navigate("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
@@ -186,23 +173,6 @@ export default function SignUp() {
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  {t("auth.phone")}
-                </label>
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder={t("auth.phoneFormat")}
-                  disabled={loading}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-50 transition disabled:opacity-50"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  We'll send a verification code to this number
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
                   {t("auth.zipCode")}
                 </label>
                 <input
@@ -222,7 +192,6 @@ export default function SignUp() {
                 <p className="font-semibold mb-2">Privacy & Security</p>
                 <ul className="space-y-1">
                   <li>✓ Your password is encrypted and secure</li>
-                  <li>✓ Phone number used only for 2-step verification</li>
                   <li>✓ Your data complies with CCPA and privacy laws</li>
                   <li>✓ No third-party data sharing</li>
                 </ul>
@@ -233,7 +202,7 @@ export default function SignUp() {
                 disabled={loading}
                 className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? "Creating Account..." : "Next: Verify Phone"}{" "}
+                {loading ? "Creating Account..." : "Create Account"}{" "}
                 <ChevronRight className="w-4 h-4" />
               </button>
             </form>

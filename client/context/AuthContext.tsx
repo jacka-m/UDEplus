@@ -1,9 +1,8 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from "react";
 
 export interface User {
   id: string;
   username: string;
-  phone: string;
   zipCode: string;
   language: string; // e.g., "en", "es", "fr"
   completedOnboarding: boolean;
@@ -24,6 +23,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const saveTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // Check if user is stored in localStorage
@@ -39,32 +39,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(false);
   }, []);
 
-  const login = (newUser: User) => {
+  const login = useCallback((newUser: User) => {
     setUser(newUser);
-    localStorage.setItem("ude_user", JSON.stringify(newUser));
-  };
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = setTimeout(() => {
+      localStorage.setItem("ude_user", JSON.stringify(newUser));
+    }, 500);
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     setUser(null);
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     localStorage.removeItem("ude_user");
-  };
+  }, []);
 
-  const updateUser = (updatedUser: User) => {
+  const updateUser = useCallback((updatedUser: User) => {
     setUser(updatedUser);
-    localStorage.setItem("ude_user", JSON.stringify(updatedUser));
-  };
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = setTimeout(() => {
+      localStorage.setItem("ude_user", JSON.stringify(updatedUser));
+    }, 500);
+  }, []);
+
+  const contextValue = useMemo(
+    () => ({
+      user,
+      isLoading,
+      login,
+      logout,
+      updateUser,
+      isAuthenticated: !!user,
+    }),
+    [user, isLoading, login, logout, updateUser]
+  );
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isLoading,
-        login,
-        logout,
-        updateUser,
-        isAuthenticated: !!user,
-      }}
-    >
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

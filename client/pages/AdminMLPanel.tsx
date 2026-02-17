@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
@@ -98,9 +98,9 @@ export default function AdminMLPanel() {
     }
   };
 
-  // Apply filters and sorting
-  const applyFiltersAndSort = (orders: OrderData[]) => {
-    let filtered = [...orders];
+  // Memoized filtered and sorted orders
+  const filteredOrdersMemo = useMemo(() => {
+    let filtered = [...allOrders];
 
     // Filter by score band
     if (filterScore !== "all") {
@@ -128,8 +128,13 @@ export default function AdminMLPanel() {
       return sortOrder === "asc" ? comparison : -comparison;
     });
 
-    setFilteredOrders(filtered);
-  };
+    return filtered;
+  }, [allOrders, filterScore, filterDateRange, sortBy, sortOrder]);
+
+  // Update filteredOrders whenever the memoized value changes
+  useEffect(() => {
+    setFilteredOrders(filteredOrdersMemo);
+  }, [filteredOrdersMemo]);
 
   useEffect(() => {
     // Check if user is the admin account
@@ -142,11 +147,6 @@ export default function AdminMLPanel() {
       setIsAuthorized(false);
     }
   }, [user]);
-
-  // Apply filters whenever they change
-  useEffect(() => {
-    applyFiltersAndSort(allOrders);
-  }, [sortBy, sortOrder, filterScore, filterDateRange, allOrders]);
 
   const loadOrders = () => {
     try {
@@ -244,10 +244,8 @@ export default function AdminMLPanel() {
   };
 
   const handleLogout = () => {
-    if (confirm(t("order.areYouSure"))) {
-      logout();
-      navigate("/login");
-    }
+    logout();
+    navigate("/login");
   };
 
   if (!isAuthorized) {
