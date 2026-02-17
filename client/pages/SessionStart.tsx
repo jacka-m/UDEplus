@@ -4,7 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useSession } from "@/context/SessionContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { toast } from "sonner";
-import { Play, LogOut, TrendingUp, User } from "lucide-react";
+import { Play, LogOut, TrendingUp, User, Plus } from "lucide-react";
 
 export default function SessionStart() {
   const navigate = useNavigate();
@@ -148,6 +148,25 @@ export default function SessionStart() {
             >
               <Play className="w-5 h-5" />
               {loading ? t('session.startingSession') : t('session.startButton')}
+            </button>
+
+            {/* Divider */}
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">or</span>
+              </div>
+            </div>
+
+            {/* Manual Session Button */}
+            <button
+              onClick={() => navigate("/manual-session")}
+              className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 text-white py-4 rounded-lg font-semibold flex items-center justify-center gap-2 hover:shadow-lg transition"
+            >
+              <Plus className="w-5 h-5" />
+              Add Previous Session Data
             </button>
 
             {/* Info Footer */}

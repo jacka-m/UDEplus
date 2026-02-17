@@ -23,6 +23,7 @@ import PostOrderSurveyImmediate from "./pages/PostOrderSurveyImmediate";
 import PostOrderSurveyDelayed from "./pages/PostOrderSurveyDelayed";
 import SessionEnd from "./pages/SessionEnd";
 import AdminMLPanel from "./pages/AdminMLPanel";
+import ManualSessionCreator from "./pages/ManualSessionCreator";
 
 const queryClient = new QueryClient();
 
@@ -93,6 +94,15 @@ const App = () => (
                   element={
                     <ProtectedRoute>
                       <AdminMLPanel />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/manual-session"
+                  element={
+                    <ProtectedRoute>
+                      <ManualSessionCreator />
                     </ProtectedRoute>
                   }
                 />
