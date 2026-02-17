@@ -400,6 +400,15 @@ export default function ManualSessionCreator() {
                           {order.dropoffCompression}/5 | ⚡ Momentum: {order.nextOrderMomentum}/5
                         </p>
                       )}
+
+                      <div className="mt-2 flex items-center gap-3">
+                        <span className="inline-flex items-center justify-center w-20 px-3 py-1 rounded-lg font-bold text-sm bg-gray-100 text-gray-800 border">
+                          {order.score?.score !== undefined ? order.score.score.toFixed(1) : "—"}/10
+                        </span>
+                        <span className={`text-sm font-semibold ${order.score?.recommendation === 'take' ? 'text-green-700' : 'text-red-700'}`}>
+                          {order.score?.recommendation === 'take' ? '✓ Take' : '✗ Decline'}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 ))}
