@@ -200,7 +200,7 @@ export default function Index() {
                 <>
                   <button
                     onClick={() => navigate("/profile")}
-                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-50 to-blue-50 text-gray-700 hover:from-purple-100 hover:to-blue-100 border border-purple-200 rounded-lg font-semibold transition"
+                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-50 to-blue-50 text-gray-700 hover:from-purple-100 hover:to-blue-100 border border-purple-200 rounded-lg font-semibold text-sm transition"
                     title={t('order.account')}
                   >
                     <User className="w-4 h-4" />
