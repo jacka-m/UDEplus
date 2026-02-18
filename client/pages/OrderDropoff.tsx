@@ -183,12 +183,7 @@ export default function OrderDropoff() {
                 </div>
 
                 <div className="space-y-3">
-                  <button
-                    onClick={handleMoreOrders}
-                    className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition"
-                  >
-                    Take Another Order
-                  </button>
+                  <p className="text-sm text-gray-600 text-center">Use the session action bar (top-right) to add another order or start deliveries.</p>
                   <button
                     onClick={handleAllOrdersDone}
                     className="w-full bg-gray-100 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-200 transition"
