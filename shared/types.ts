@@ -86,6 +86,8 @@ export interface DrivingSession {
 
   // Trip phase controls sequencing of pickups vs deliveries
   tripPhase?: "collecting" | "delivering";
+  // IDs of orders that require immediate post-dropoff survey
+  pendingImmediateSurveyIds?: string[];
 
   // Orders within this session
   orderIds: string[];

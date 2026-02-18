@@ -5,7 +5,8 @@ import { OrderData } from "@shared/types";
 import { mlModel } from "@/utils/mlModel";
 import { delayedDataReminder } from "@/utils/delayedDataReminder";
 import { ordersManager } from "@/utils/ordersManager";
-import { clearActiveOrderState, loadActiveOrderState } from "@/utils/storage";
+import { clearActiveOrderState, loadActiveOrderState, saveActiveOrderState } from "@/utils/storage";
+import { useSession } from "@/context/SessionContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "@/hooks/use-toast";
@@ -48,6 +49,8 @@ export default function PostOrderSurveyImmediate() {
       }
     }
   }, [location, navigate]);
+
+  const { getNextPendingImmediateSurvey, removePendingImmediateSurvey } = useSession();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,6 +112,18 @@ export default function PostOrderSurveyImmediate() {
       // Queue for 2-hour delayed data collection
       delayedDataReminder.addOrder(completedOrderWithMetrics);
 
+      // Remove this order from pending immediate surveys
+      try {
+        removePendingImmediateSurvey && removePendingImmediateSurvey(completedOrderWithMetrics.id);
+      } catch {}
+
+      // If more pending immediate surveys exist, navigate to next one
+      const next = getNextPendingImmediateSurvey && getNextPendingImmediateSurvey();
+      if (next) {
+        saveNextAndNavigate(next);
+        return;
+      }
+
       // Clear active order state — workflow for this order is fully complete
       clearActiveOrderState();
 
@@ -118,6 +133,12 @@ export default function PostOrderSurveyImmediate() {
       setError(err instanceof Error ? err.message : "An error occurred");
       setLoading(false);
     }
+  };
+
+  const saveNextAndNavigate = (nextOrder: OrderData) => {
+    // Save next pending into active order state and navigate to its survey
+    saveActiveOrderState("survey-immediate", nextOrder);
+    navigate("/post-order-survey-immediate", { state: { orderData: nextOrder } });
   };
 
   if (!orderData) {

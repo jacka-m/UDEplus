@@ -6,6 +6,7 @@ import { OrderData } from "@shared/types";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { saveActiveOrderState, loadActiveOrderState, clearActiveOrderState } from "@/utils/storage";
+import { useSession } from "@/context/SessionContext";
 import { toast } from "@/hooks/use-toast";
 
 export default function OrderDropoff() {
@@ -46,6 +47,8 @@ export default function OrderDropoff() {
     );
   }
 
+  const { addPendingImmediateSurvey, getNextPendingImmediateSurvey } = useSession();
+
   const handleDropoffComplete = () => {
     const now = new Date();
 
@@ -61,10 +64,23 @@ export default function OrderDropoff() {
 
     setCompletedOrder(updated);
     setDropped(true);
+
+    try {
+      addPendingImmediateSurvey && addPendingImmediateSurvey(updated);
+    } catch {}
   };
 
   // Driver indicates all orders in the trip are done — show immediate survey
   const handleAllOrdersDone = () => {
+    // Navigate to the next pending immediate survey (oldest first)
+    const next = getNextPendingImmediateSurvey();
+    if (next) {
+      saveActiveOrderState("survey-immediate", next);
+      navigate("/post-order-survey-immediate", { state: { orderData: next } });
+      return;
+    }
+
+    // Fallback to completedOrder if nothing in session pending list
     if (!completedOrder) return;
     saveActiveOrderState("survey-immediate", completedOrder);
     navigate("/post-order-survey-immediate", { state: { orderData: completedOrder } });

@@ -15,6 +15,9 @@ interface SessionContextType {
   updateOrderInSession: (order: OrderData) => void;
   getNextUnpickedOrder: () => OrderData | null;
   getNextUndeliveredOrder: () => OrderData | null;
+  addPendingImmediateSurvey: (order: OrderData) => void;
+  getNextPendingImmediateSurvey: () => OrderData | null;
+  removePendingImmediateSurvey: (id: string) => void;
 }
 
 const SessionContext = createContext<SessionContextType | undefined>(
@@ -24,6 +27,7 @@ const SessionContext = createContext<SessionContextType | undefined>(
 export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<DrivingSession | null>(null);
   const [orders, setOrders] = useState<OrderData[]>([]);
+  const [pendingSurveyIds, setPendingSurveyIds] = useState<string[]>([]);
   const saveTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
   // Load session from localStorage on mount
@@ -50,6 +54,14 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         localStorage.removeItem("ude_session_orders");
       }
     }
+    const savedPending = localStorage.getItem("ude_session_pending_surveys");
+    if (savedPending) {
+      try {
+        setPendingSurveyIds(JSON.parse(savedPending));
+      } catch {
+        localStorage.removeItem("ude_session_pending_surveys");
+      }
+    }
   }, []);
 
   // Save session to localStorage whenever it changes (debounced with error handling)
@@ -65,6 +77,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         try {
           localStorage.setItem("ude_session", JSON.stringify(session));
           localStorage.setItem("ude_session_orders", JSON.stringify(orders));
+          localStorage.setItem("ude_session_pending_surveys", JSON.stringify(pendingSurveyIds));
         } catch (error) {
           console.error("Failed to save session to localStorage:", error);
           toast({
@@ -82,6 +95,12 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       }
     };
   }, [session, orders]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("ude_session_pending_surveys", JSON.stringify(pendingSurveyIds));
+    } catch {}
+  }, [pendingSurveyIds]);
 
   const startSession = useCallback(async (userId: string) => {
     if (!userId) {
@@ -195,6 +214,23 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     setSession(updatedSession);
   }, [session, orders]);
 
+  const addPendingImmediateSurvey = useCallback((order: OrderData) => {
+    setPendingSurveyIds((prev) => {
+      if (prev.includes(order.id)) return prev;
+      return [...prev, order.id];
+    });
+  }, []);
+
+  const getNextPendingImmediateSurvey = useCallback(() => {
+    if (pendingSurveyIds.length === 0) return null;
+    const id = pendingSurveyIds[0];
+    return orders.find((o) => o.id === id) || null;
+  }, [pendingSurveyIds, orders]);
+
+  const removePendingImmediateSurvey = useCallback((id: string) => {
+    setPendingSurveyIds((prev) => prev.filter((x) => x !== id));
+  }, []);
+
   const setTripPhase = useCallback((phase: "collecting" | "delivering") => {
     if (!session) return;
     const updatedSession: DrivingSession = {
@@ -268,6 +304,9 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       updateOrderInSession,
       getNextUnpickedOrder,
       getNextUndeliveredOrder,
+      addPendingImmediateSurvey,
+      getNextPendingImmediateSurvey,
+      removePendingImmediateSurvey,
     }),
     [session, startSession, endSession, addOrderToSession, getSessionOrders, updateSessionStats]
   );
