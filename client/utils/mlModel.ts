@@ -15,27 +15,29 @@ class MLModel {
    * Extract features from an order for ML model
    */
   extractFeatures(order: OrderData): MLModelData["features"] {
-    // Calculate hourly rate
-    const hourlyRate = order.estimatedTime > 0
-      ? (order.shownPayout / (order.estimatedTime / 60))
-      : 0;
+    // Use processedMetrics if available
+    const pm = order.processedMetrics;
+    const hourlyRate = pm ? pm.hourlyRateNormalized * 50
+      : order.estimatedTime > 0
+        ? (order.shownPayout / (order.estimatedTime / 60))
+        : 0;
 
-    // Calculate miles efficiency (payout per mile)
-    const milesEfficiency = order.miles > 0
-      ? order.shownPayout / order.miles
-      : 0;
+    const milesEfficiency = pm ? pm.milesEfficiencyNormalized * 5
+      : order.miles > 0
+        ? order.shownPayout / order.miles
+        : 0;
 
-    // Stops bonus (normalized to 0-1)
     const stopsBonus = Math.min(order.numberOfStops * 0.1, 1);
-
-    // Time of day scoring (peak hours get higher scores)
     const timeOfDay = this.getTimeOfDayScore(order.timeOfDay);
-
-    // Day of week scoring (weekend > weekday)
     const dayOfWeek = this.getDayOfWeekScore(order.dayOfWeek);
-
-    // Pickup zone scoring (popular zones get higher scores)
     const pickupZoneScore = this.getPickupZoneScore(order.pickupZone);
+
+    // Weather score
+    const weatherScore = order.weatherCondition === "sunny"  ? 1.0
+      : order.weatherCondition === "cloudy" ? 0.9
+      : order.weatherCondition === "rainy"  ? 0.75
+      : order.weatherCondition === "snowy"  ? 0.6
+      : 1.0;
 
     return {
       hourlyRate,
@@ -54,6 +56,34 @@ class MLModel {
       routeCohesion: order.routeCohesion || 3,
       dropoffCompression: order.dropoffCompression || 3,
       nextOrderMomentum: order.nextOrderMomentum || 3,
+      weatherScore,
+    };
+  }
+
+  /**
+   * Compute derived/normalized metrics from raw order data.
+   * Call this before saving a completed order (in PostOrderSurveyImmediate).
+   */
+  computeProcessedMetrics(order: OrderData): OrderData["processedMetrics"] {
+    const safeTime  = order.estimatedTime > 0 ? order.estimatedTime : 1;
+    const safeStops = order.numberOfStops  > 0 ? order.numberOfStops  : 1;
+    const safeMiles = order.miles          > 0 ? order.miles          : 0.1;
+
+    const hourlyRate = order.shownPayout / (safeTime / 60);
+    const milesEff   = order.shownPayout / safeMiles;
+
+    return {
+      hourlyRateNormalized:       Math.min(hourlyRate / 50, 1),
+      milesEfficiencyNormalized:  Math.min(milesEff   / 5,  1),
+      payoutPerStop:              order.shownPayout  / safeStops,
+      timePerStop:                safeTime           / safeStops,
+      payoutPerMinute:            order.shownPayout  / safeTime,
+      waitRatio: order.waitTimeAtRestaurant != null
+        ? order.waitTimeAtRestaurant / safeTime
+        : undefined,
+      actualVsEstimatedRatio: order.actualTotalTime != null
+        ? order.actualTotalTime / safeTime
+        : undefined,
     };
   }
 
@@ -160,15 +190,21 @@ class MLModel {
   private predictWithDefaultAlgorithm(order: OrderData): number {
     const safeEstimatedTime = order.estimatedTime && order.estimatedTime > 0 ? order.estimatedTime : 1;
     const safeMiles = order.miles && order.miles > 0 ? order.miles : 0.1;
+    const safeStops = order.numberOfStops && order.numberOfStops > 0 ? order.numberOfStops : 1;
 
     const hourlyRate = (order.shownPayout / (safeEstimatedTime / 60)) * 1.2;
     const milesEfficiency = order.shownPayout / safeMiles;
     const stopsBonus = Math.min(order.numberOfStops * 0.1, 0.5);
     const zoneMultiplier = (order.pickupZone || "").toLowerCase() === "downtown" ? 1.2 : 1;
 
+    // Distance drift penalty: high time-per-stop ratio means likely ending far from start zone
+    const timePerStop = safeEstimatedTime / safeStops;
+    const driftPenalty = timePerStop > 20 ? Math.min((timePerStop - 20) / 40, 0.25) : 0;
+
     const baseScore =
       (hourlyRate * 0.5 + milesEfficiency * 0.3 + stopsBonus * 0.2) *
-      zoneMultiplier;
+      zoneMultiplier *
+      (1 - driftPenalty);
 
     // Convert to 1-10 scale and guard non-finite
     const normalizedScore = Number.isFinite(baseScore)

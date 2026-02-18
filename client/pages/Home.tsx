@@ -2,7 +2,15 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useSession } from "@/context/SessionContext";
+import { loadActiveOrderState } from "@/utils/storage";
 import { Loader2 } from "lucide-react";
+
+const STEP_ROUTES: Record<string, string> = {
+  pickup: "/order-pickup",
+  wait: "/restaurant-wait",
+  dropoff: "/order-dropoff",
+  "survey-immediate": "/post-order-survey-immediate",
+};
 
 export default function Home() {
   const navigate = useNavigate();
@@ -12,6 +20,17 @@ export default function Home() {
 
   useEffect(() => {
     if (!isLoading) {
+      // Restore in-flight order if app was reloaded mid-workflow
+      const activeState = loadActiveOrderState();
+      if (activeState && isSessionActive) {
+        const route = STEP_ROUTES[activeState.step];
+        if (route) {
+          navigate(route, { state: { orderData: activeState.orderData } });
+          setIsCheckingStatus(false);
+          return;
+        }
+      }
+
       // If user has an active session, return to the analysis page
       if (isSessionActive) {
         navigate("/analyze");

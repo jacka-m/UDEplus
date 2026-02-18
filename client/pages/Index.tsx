@@ -10,6 +10,7 @@ import { mlModel } from "@/utils/mlModel";
 import { delayedDataReminder } from "@/utils/delayedDataReminder";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { validateOrderData, getValidationErrorMessage } from "@/utils/dataValidation";
+import { saveActiveOrderState } from "@/utils/storage";
 import { toast } from "@/hooks/use-toast";
 
 type FlowStep = "form" | "recommendation";
@@ -20,6 +21,7 @@ interface FormData {
   miles: number;
   estimatedTime: number;
   pickupZone: string;
+  state: string; // NEW — 2-letter US state code, optional
 }
 
 interface FormErrors {
@@ -42,6 +44,7 @@ export default function Index() {
     miles: 0,
     estimatedTime: 0,
     pickupZone: "",
+    state: "",
   });
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [score, setScore] = useState(0);
@@ -128,6 +131,7 @@ export default function Index() {
       miles: data.miles,
       estimatedTime: data.estimatedTime,
       pickupZone: data.pickupZone,
+      state: data.state || undefined,
       score: {
         score: 1,
         recommendation: "decline",
@@ -184,9 +188,10 @@ export default function Index() {
       miles: formData.miles,
       estimatedTime: formData.estimatedTime,
       pickupZone: formData.pickupZone,
+      state: formData.state || undefined,
       score: {
         score: score,
-        recommendation: score <= 5 ? "decline" : "take",
+        recommendation: score < 5 ? "decline" : "take",
         timestamp: now.toISOString(),
       },
       offeredAt: now.toISOString(),
@@ -201,19 +206,21 @@ export default function Index() {
     // Add to session
     addOrderToSession(orderData);
 
+    // Persist active order so app can recover from reload/swipe-away
+    saveActiveOrderState("pickup", orderData);
+
     // Navigate to order pickup page with order data
     navigate("/order-pickup", { state: { orderData } });
   };
 
   const handleDeclinedOffer = () => {
     setStep("form");
-    setFormData({
-      stops: 0,
-      payout: 0,
-      miles: 0,
-      estimatedTime: 0,
-      pickupZone: "",
-    });
+    // Keep form data so driver can edit and re-analyze
+  };
+
+  const handleEditInputs = () => {
+    setStep("form");
+    // Return to form with current data intact for editing
   };
 
   const handleEndSessionConfirmed = async () => {
@@ -468,6 +475,24 @@ export default function Index() {
                 )}
               </div>
 
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  State (optional)
+                </label>
+                <select
+                  value={formData.state}
+                  onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                  className="w-full px-4 py-3 border rounded-lg bg-gray-50 border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
+                >
+                  <option value="">Select state (optional)</option>
+                  {[
+                    "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY"
+                  ].map((code) => (
+                    <option key={code} value={code}>{code}</option>
+                  ))}
+                </select>
+              </div>
+
               <button
                 onClick={handleFormSubmit}
                 disabled={
@@ -489,18 +514,9 @@ export default function Index() {
         {step === "recommendation" && (
           <div className="w-full max-w-md">
             <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 space-y-6 sm:space-y-8">
-              {/* Score Display */}
+              {/* Circular Score Ring */}
               <div className="flex justify-center">
-                <div className="relative w-40 h-40 flex items-center justify-center">
-                  <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full opacity-10"></div>
-                  <div className="absolute inset-2 bg-white rounded-full"></div>
-                  <div className="text-center z-10">
-                    <div className="text-5xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-                      {score}
-                    </div>
-                    <div className="text-xs text-gray-500 mt-2">Score</div>
-                  </div>
-                </div>
+                <ScoreRing score={score} />
               </div>
 
               {/* Recommendation Text */}
@@ -508,17 +524,9 @@ export default function Index() {
                 <p className="text-lg font-semibold text-gray-900 mb-2">
                   {t('order.analysisComplete')}
                 </p>
-                <div className="inline-block px-6 py-3 rounded-full bg-gradient-to-r from-purple-100 to-blue-100">
-                  <p
-                    className={`text-sm font-semibold ${
-                      score <= 2
-                        ? "text-red-700"
-                        : "text-green-700"
-                    }`}
-                  >
-                    {score <= 2
-                      ? t('order.doNotTake')
-                      : t('order.takeoffer')}
+                <div className={`inline-block px-6 py-3 rounded-full ${score < 5 ? "bg-red-50 border border-red-200" : "bg-green-50 border border-green-200"}`}>
+                  <p className={`text-sm font-semibold ${score < 5 ? "text-red-700" : "text-green-700"}`}>
+                    {score < 5 ? t('order.doNotTake') : t('order.takeoffer')}
                   </p>
                 </div>
               </div>
@@ -564,6 +572,16 @@ export default function Index() {
                   className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition"
                 >
                   {t('order.declinedOffer')}
+                </button>
+              </div>
+
+              {/* Edit inputs link */}
+              <div className="text-center">
+                <button
+                  onClick={handleEditInputs}
+                  className="text-sm text-purple-600 hover:text-purple-800 underline transition"
+                >
+                  Edit order details
                 </button>
               </div>
             </div>
@@ -661,6 +679,102 @@ export default function Index() {
           isDangerous
         />
       </div>
+    </div>
+  );
+}
+
+interface ScoreRingProps {
+  score: number;
+}
+
+function ScoreRing({ score }: ScoreRingProps) {
+  const size = 160;
+  const strokeWidth = 12;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const fillRatio = Math.min(Math.max(score / 10, 0), 1);
+  const dashOffset = circumference * (1 - fillRatio);
+  const isRecommended = score >= 5;
+
+  return (
+    <div className="relative" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="-rotate-90">
+        {/* Track */}
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="#e5e7eb"
+          strokeWidth={strokeWidth}
+        />
+        {/* Progress arc */}
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke={isRecommended ? "url(#scoreGradient)" : "#ef4444"}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={dashOffset}
+          style={{ transition: "stroke-dashoffset 0.6s ease-out" }}
+        />
+        <defs>
+          <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#9333ea" />
+            <stop offset="100%" stopColor="#2563eb" />
+          </linearGradient>
+        </defs>
+      </svg>
+      {/* Center content */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span
+          className={`text-5xl font-bold ${
+            isRecommended
+              ? "bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent"
+              : "text-red-600"
+          }`}
+        >
+          {score}
+        </span>
+        <span className="text-xs text-gray-500 mt-1">/ 10</span>
+      </div>
+    </div>
+  );
+}
+
+import { stateMinimumWages } from "@/utils/minimumWage";
+function MinWageCard({ payout, estimatedTime, state }: { payout: number; estimatedTime: number; state: string }) {
+  if (!state) return null;
+  const minWage = stateMinimumWages[state] ?? 7.25;
+  const projectedHourly = estimatedTime > 0 ? (payout / (estimatedTime / 60)) : 0;
+  const isAboveMin = projectedHourly >= minWage;
+  return (
+    <div className={`rounded-lg p-4 text-sm border ${
+      isAboveMin
+        ? "bg-green-50 border-green-200"
+        : "bg-amber-50 border-amber-200"
+    }`}>
+      <p className="font-semibold text-gray-800 mb-2">
+        Earnings vs. {state} State Minimum
+      </p>
+      <div className="flex justify-between">
+        <span className="text-gray-600">Your projected rate:</span>
+        <span className={`font-bold ${isAboveMin ? "text-green-700" : "text-amber-700"}`}>
+          ${projectedHourly.toFixed(2)}/hr
+        </span>
+      </div>
+      <div className="flex justify-between">
+        <span className="text-gray-600">State minimum wage:</span>
+        <span className="font-semibold text-gray-800">${minWage.toFixed(2)}/hr</span>
+      </div>
+      {!isAboveMin && (
+        <p className="text-amber-700 text-xs mt-2">
+          ⚠ Below state minimum — check your platform's earnings guarantee policy.
+        </p>
+      )}
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { Loader2, User, Clock } from "lucide-react";
 import { OrderData } from "@shared/types";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
+import { saveActiveOrderState, loadActiveOrderState } from "@/utils/storage";
 import { toast } from "@/hooks/use-toast";
 
 export default function RestaurantWait() {
@@ -18,20 +19,29 @@ export default function RestaurantWait() {
   const [dropoffZone, setDropoffZone] = useState("");
   const [showManualInput, setShowManualInput] = useState(false);
   const [manualMinutes, setManualMinutes] = useState("");
+  const [showDetailsForm, setShowDetailsForm] = useState(false);
+  const [detailsEntered, setDetailsEntered] = useState(false);
+  const [weatherCondition, setWeatherCondition] = useState<string>("");
   const intervalRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
     const state = location.state as { orderData?: OrderData };
-    if (!state?.orderData) {
-      toast({
-        title: "Session Lost",
-        description: "Order data was lost. Starting fresh.",
-        variant: "destructive",
-      });
-      navigate("/session-start");
-      return;
+    if (state?.orderData) {
+      setOrderData(state.orderData);
+    } else {
+      const saved = loadActiveOrderState();
+      if (saved?.orderData) {
+        setOrderData(saved.orderData);
+      } else {
+        toast({
+          title: "Session Lost",
+          description: "Order data was lost. Starting fresh.",
+          variant: "destructive",
+        });
+        navigate("/session-start");
+        return;
+      }
     }
-    setOrderData(state.orderData);
   }, [location, navigate]);
 
   useEffect(() => {
@@ -75,8 +85,10 @@ export default function RestaurantWait() {
       waitEndTime: new Date().toISOString(),
       waitTimeAtRestaurant: waitTime,
       actualStartTime: new Date().toISOString(),
+      weatherCondition: (weatherCondition as OrderData["weatherCondition"]) || undefined,
     };
 
+    saveActiveOrderState("dropoff", updatedOrder);
     navigate("/order-dropoff", { state: { orderData: updatedOrder } });
   };
 
@@ -96,8 +108,10 @@ export default function RestaurantWait() {
       waitEndTime: new Date().toISOString(),
       waitTimeAtRestaurant: waitTime,
       actualStartTime: new Date().toISOString(),
+      weatherCondition: (weatherCondition as OrderData["weatherCondition"]) || undefined,
     };
 
+    saveActiveOrderState("dropoff", updatedOrder);
     navigate("/order-dropoff", { state: { orderData: updatedOrder } });
   };
 
@@ -143,51 +157,95 @@ export default function RestaurantWait() {
               </button>
             </div>
 
-            {/* Restaurant Info Form */}
-            <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg p-4 space-y-4">
-              <p className="text-sm font-semibold text-gray-700 mb-4">
-                📝 Fill in order details while you wait
-              </p>
+            {/* Enter Details section */}
+            {detailsEntered ? (
+              <div className="space-y-2">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center text-sm font-semibold text-green-700">
+                  ✓ Details entered.
+                </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">
-                  Pickup Location Name
-                </label>
-                <input
-                  type="text"
-                  value={restaurantName}
-                  onChange={(e) => setRestaurantName(e.target.value)}
-                  placeholder="e.g., McDonald's, Thai Palace"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
+                {/* Weather capture */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="text-xs font-semibold text-blue-700 mb-2">🌤 Current weather?</p>
+                  <div className="grid grid-cols-4 gap-2">
+                    {( ["sunny", "cloudy", "rainy", "snowy"] as const).map((w) => (
+                      <button
+                        key={w}
+                        onClick={() => setWeatherCondition(w)}
+                        className={`py-2 rounded-lg text-xs font-semibold transition ${
+                          weatherCondition === w
+                            ? "bg-blue-600 text-white"
+                            : "bg-white border border-blue-200 text-blue-700 hover:bg-blue-50"
+                        }`}
+                      >
+                        {w === "sunny"  ? "☀️ Sunny"  :
+                         w === "cloudy" ? "☁️ Cloudy" :
+                         w === "rainy"  ? "🌧 Rainy"  : "🌨 Snowy"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
+            ) : showDetailsForm ? (
+              <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg p-4 space-y-4">
+                <p className="text-sm font-semibold text-gray-700">
+                  📝 Fill in order details while you wait
+                </p>
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">
-                  Pickup Location Address
-                </label>
-                <input
-                  type="text"
-                  value={restaurantAddress}
-                  onChange={(e) => setRestaurantAddress(e.target.value)}
-                  placeholder="e.g., 123 Main St, Downtown"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">
+                    Pickup Location Name
+                  </label>
+                  <input
+                    type="text"
+                    value={restaurantName}
+                    onChange={(e) => setRestaurantName(e.target.value)}
+                    placeholder="e.g., McDonald's, Thai Palace"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">
-                  Dropoff Zone (City/Area)
-                </label>
-                <input
-                  type="text"
-                  value={dropoffZone}
-                  onChange={(e) => setDropoffZone(e.target.value)}
-                  placeholder="e.g., West Hollywood, Downtown LA"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">
+                    Pickup Location Address
+                  </label>
+                  <input
+                    type="text"
+                    value={restaurantAddress}
+                    onChange={(e) => setRestaurantAddress(e.target.value)}
+                    placeholder="e.g., 123 Main St, Downtown"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">
+                    Dropoff Zone (City/Area)
+                  </label>
+                  <input
+                    type="text"
+                    value={dropoffZone}
+                    onChange={(e) => setDropoffZone(e.target.value)}
+                    placeholder="e.g., West Hollywood, Downtown LA"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+
+                <button
+                  onClick={() => setDetailsEntered(true)}
+                  className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-2 rounded-lg font-semibold hover:shadow-md transition text-sm"
+                >
+                  Save Details
+                </button>
               </div>
-            </div>
+            ) : (
+              <button
+                onClick={() => setShowDetailsForm(true)}
+                className="w-full bg-gradient-to-br from-blue-50 to-purple-50 border border-purple-200 text-purple-700 py-3 rounded-lg font-semibold hover:from-blue-100 hover:to-purple-100 transition text-sm"
+              >
+                📝 Enter Details
+              </button>
+            )}
 
             {/* Action Button */}
             <button

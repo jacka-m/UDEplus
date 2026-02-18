@@ -1,4 +1,52 @@
 import { toast } from "@/hooks/use-toast";
+import { OrderData } from "@shared/types";
+
+// Keys for active order workflow persistence (survives app reload/swipe-away)
+const ACTIVE_ORDER_KEY = "ude_active_order";
+const ACTIVE_STEP_KEY = "ude_active_step";
+
+export type ActiveOrderStep = "pickup" | "wait" | "dropoff" | "survey-immediate";
+
+/**
+ * Save the current in-flight order and workflow step to survive app reloads.
+ * Call this whenever navigating to a new workflow page.
+ */
+export function saveActiveOrderState(step: ActiveOrderStep, orderData: OrderData): void {
+  try {
+    localStorage.setItem(ACTIVE_STEP_KEY, step);
+    localStorage.setItem(ACTIVE_ORDER_KEY, JSON.stringify(orderData));
+  } catch {
+    // Non-critical – in-memory path will be taken
+  }
+}
+
+/**
+ * Load the persisted in-flight order state. Returns null if nothing is saved.
+ */
+export function loadActiveOrderState(): { step: ActiveOrderStep; orderData: OrderData } | null {
+  try {
+    const step = localStorage.getItem(ACTIVE_STEP_KEY) as ActiveOrderStep | null;
+    const raw = localStorage.getItem(ACTIVE_ORDER_KEY);
+    if (step && raw) {
+      return { step, orderData: JSON.parse(raw) as OrderData };
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return null;
+}
+
+/**
+ * Clear the active order state once an order workflow is fully complete.
+ */
+export function clearActiveOrderState(): void {
+  try {
+    localStorage.removeItem(ACTIVE_STEP_KEY);
+    localStorage.removeItem(ACTIVE_ORDER_KEY);
+  } catch {
+    // Ignore
+  }
+}
 
 /**
  * Safe localStorage wrapper that handles write failures gracefully

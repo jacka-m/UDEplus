@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Loader2, ChevronRight, AlertCircle, User } from "lucide-react";
 import { OrderData } from "@shared/types";
+import { mlModel } from "@/utils/mlModel";
 import { delayedDataReminder } from "@/utils/delayedDataReminder";
 import { ordersManager } from "@/utils/ordersManager";
+import { clearActiveOrderState, loadActiveOrderState } from "@/utils/storage";
 import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "@/hooks/use-toast";
@@ -29,16 +31,22 @@ export default function PostOrderSurveyImmediate() {
 
   useEffect(() => {
     const state = location.state as { orderData?: OrderData };
-    if (!state?.orderData) {
-      toast({
-        title: "Session Lost",
-        description: "Order data was lost. Starting fresh.",
-        variant: "destructive",
-      });
-      navigate("/session-start");
-      return;
+    if (state?.orderData) {
+      setOrderData(state.orderData);
+    } else {
+      const saved = loadActiveOrderState();
+      if (saved?.orderData) {
+        setOrderData(saved.orderData);
+      } else {
+        toast({
+          title: "Session Lost",
+          description: "Order data was lost. Starting fresh.",
+          variant: "destructive",
+        });
+        navigate("/session-start");
+        return;
+      }
     }
-    setOrderData(state.orderData);
   }, [location, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -48,6 +56,7 @@ export default function PostOrderSurveyImmediate() {
 
     try {
       if (!orderData) throw new Error("Missing order data");
+
 
       // Add immediate survey data to order
       const completedOrder: OrderData = {
@@ -69,11 +78,18 @@ export default function PostOrderSurveyImmediate() {
         updatedAt: new Date().toISOString(),
       };
 
+      // Compute processed metrics before saving
+      const completedOrderWithMetrics: OrderData = {
+        ...completedOrder,
+        processedMetrics: mlModel.computeProcessedMetrics(completedOrder),
+      };
+
+
       // Save partial order to backend (without final payout)
       const response = await fetch("/api/orders/immediate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(completedOrder),
+        body: JSON.stringify(completedOrderWithMetrics),
       });
 
       if (!response.ok) {
@@ -81,15 +97,20 @@ export default function PostOrderSurveyImmediate() {
         throw new Error(data.message || "Failed to save survey");
       }
 
+
       // Save completed order to user's historical data (localStorage)
       // This ensures data persists even if backend storage fails
       const existingOrders = localStorage.getItem("ude_all_orders");
       const allOrders: OrderData[] = existingOrders ? JSON.parse(existingOrders) : [];
-      const updatedOrders = [...allOrders, completedOrder];
+      const updatedOrders = [...allOrders, completedOrderWithMetrics];
       localStorage.setItem("ude_all_orders", JSON.stringify(updatedOrders));
 
+
       // Queue for 2-hour delayed data collection
-      delayedDataReminder.addOrder(completedOrder);
+      delayedDataReminder.addOrder(completedOrderWithMetrics);
+
+      // Clear active order state — workflow for this order is fully complete
+      clearActiveOrderState();
 
       // Go back to main session
       navigate("/", { state: { orderComplete: true } });

@@ -3,7 +3,7 @@
  * ZIP codes are mapped to states for lookup
  */
 
-const stateMinimumWages: Record<string, number> = {
+export const stateMinimumWages: Record<string, number> = {
   // State abbreviations mapped to hourly minimum wage
   AL: 7.25, // Alabama
   AK: 11.73, // Alaska

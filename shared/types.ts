@@ -61,6 +61,20 @@ export interface OrderData {
   updatedAt: string;
   // Optional username (augmented by server export for admin views)
   username?: string;
+
+  // ML preprocessing — computed at order completion, stored for pipeline
+  processedMetrics?: {
+    hourlyRateNormalized: number;   // hourlyRate / 50 (clamped 0–1, $50/hr = 1.0)
+    milesEfficiencyNormalized: number; // $/mile / 5 (clamped 0–1)
+    payoutPerStop: number;          // shownPayout / numberOfStops
+    timePerStop: number;            // estimatedTime / numberOfStops (minutes)
+    payoutPerMinute: number;        // shownPayout / estimatedTime
+    waitRatio?: number;             // waitTimeAtRestaurant / estimatedTime (if wait occurred)
+    actualVsEstimatedRatio?: number; // actualTotalTime / estimatedTime (filled post-dropoff)
+  };
+
+  weatherCondition?: "sunny" | "cloudy" | "rainy" | "snowy";
+  state?: string; // 2-letter state code for earnings law
 }
 
 export interface DrivingSession {
@@ -101,6 +115,7 @@ export interface MLModelData {
     routeCohesion?: number;
     dropoffCompression?: number;
     nextOrderMomentum?: number;
+    weatherScore?: number; // 1.0=sunny, 0.9=cloudy, 0.75=rainy, 0.6=snowy
   };
   label: 1 | 2 | 3 | 4; // Actual score/outcome
 }
