@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
@@ -35,7 +35,7 @@ export default function ManualSessionCreator() {
   };
 
   // Log orders when moving to review to help debugging why scores may be 0
-  React.useEffect(() => {
+  useEffect(() => {
     if (step === "review") {
       console.debug("[ManualSessionCreator] entering review, orders:", orders);
     }
