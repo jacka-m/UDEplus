@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { CheckCircle, Loader2, X, User } from "lucide-react";
 import { QuickLogPrompt } from "@/components/QuickLogPrompt";
+import { useSession } from "@/context/SessionContext";
 import { OrderData } from "@shared/types";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
@@ -13,6 +14,7 @@ export default function OrderPickup() {
   const location = useLocation();
   const { user } = useAuth();
   const { t } = useLanguage();
+  const { updateOrderInSession, getNextUnpickedOrder, setTripPhase } = useSession();
   const [orderData, setOrderData] = useState<OrderData | null>(null);
   const [showDeclinePrompt, setShowDeclinePrompt] = useState(false);
   const [showButtons, setShowButtons] = useState(false);
@@ -67,12 +69,40 @@ export default function OrderPickup() {
     if (isMultiStop && !allPickedUp) {
       const next = pickedUpCount + 1;
       setPickedUpCount(next);
-      if (next < totalStops) {
-        // More pickups remain — stay on this page, update counter
+      // Mark this stop as picked in session orders
+      const updatedOrder: OrderData = {
+        ...orderData,
+        actualStartTime: new Date().toISOString(),
+      };
+      // Update session orders and navigate to next unpicked order if present
+      const { updateOrderInSession, getNextUnpickedOrder, setTripPhase } = require("@/context/SessionContext").useSession();
+      try {
+        updateOrderInSession && updateOrderInSession(updatedOrder);
+      } catch (e) {
+        // ignore if session helpers not available
+      }
+
+      const nextOrder = (() => {
+        try {
+          return getNextUnpickedOrder ? getNextUnpickedOrder() : null;
+        } catch (e) {
+          return null;
+        }
+      })();
+
+      if (next < totalStops && nextOrder) {
+        saveActiveOrderState("pickup", nextOrder);
+        navigate("/order-pickup", { state: { orderData: nextOrder } });
         return;
       }
+
+      // No more unpicked orders — fall through to delivery phase
+      try {
+        setTripPhase && setTripPhase("delivering");
+      } catch {}
     }
-    // All pickups done (or single-stop) — go to dropoff
+
+    // All pickups done (or single-stop) — go to dropoff for this order
     const updatedOrder: OrderData = {
       ...orderData,
       actualStartTime: new Date().toISOString(),

@@ -11,6 +11,10 @@ interface SessionContextType {
   addOrderToSession: (order: OrderData) => void;
   getSessionOrders: () => OrderData[];
   updateSessionStats: () => void;
+  setTripPhase: (phase: "collecting" | "delivering") => void;
+  updateOrderInSession: (order: OrderData) => void;
+  getNextUnpickedOrder: () => OrderData | null;
+  getNextUndeliveredOrder: () => OrderData | null;
 }
 
 const SessionContext = createContext<SessionContextType | undefined>(
@@ -92,6 +96,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       userId: userId,
       startTime: now.toISOString(),
       status: "active",
+      tripPhase: "collecting",
       orderIds: [],
       totalOrders: 0,
       totalEarnings: 0,
@@ -135,6 +140,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       ...session,
       endTime: now.toISOString(),
       status: "ended",
+      tripPhase: undefined,
       delayedDataDueAt: new Date(now.getTime() + 2 * 60 * 60 * 1000).toISOString(),
       updatedAt: now.toISOString(),
     };
@@ -189,6 +195,34 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     setSession(updatedSession);
   }, [session, orders]);
 
+  const setTripPhase = useCallback((phase: "collecting" | "delivering") => {
+    if (!session) return;
+    const updatedSession: DrivingSession = {
+      ...session,
+      tripPhase: phase,
+      updatedAt: new Date().toISOString(),
+    };
+    setSession(updatedSession);
+  }, [session]);
+
+  const updateOrderInSession = useCallback((order: OrderData) => {
+    const idx = orders.findIndex((o) => o.id === order.id);
+    if (idx === -1) return;
+    const updated = [...orders];
+    updated[idx] = order;
+    setOrders(updated);
+  }, [orders]);
+
+  const getNextUnpickedOrder = useCallback(() => {
+    // Unpicked = acceptedAt exists but actualStartTime not set
+    return orders.find((o) => o.acceptedAt && !o.actualStartTime) || null;
+  }, [orders]);
+
+  const getNextUndeliveredOrder = useCallback(() => {
+    // Undelivered = actualEndTime not set but picked up (actualStartTime set)
+    return orders.find((o) => o.actualStartTime && !o.actualEndTime) || null;
+  }, [orders]);
+
   const getSessionOrders = useCallback(() => {
     return orders;
   }, [orders]);
@@ -230,6 +264,10 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       addOrderToSession,
       getSessionOrders,
       updateSessionStats,
+      setTripPhase,
+      updateOrderInSession,
+      getNextUnpickedOrder,
+      getNextUndeliveredOrder,
     }),
     [session, startSession, endSession, addOrderToSession, getSessionOrders, updateSessionStats]
   );

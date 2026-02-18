@@ -24,6 +24,7 @@ import PostOrderSurveyDelayed from "./pages/PostOrderSurveyDelayed";
 import SessionEnd from "./pages/SessionEnd";
 import AdminMLPanel from "./pages/AdminMLPanel";
 import ManualSessionCreator from "./pages/ManualSessionCreator";
+import SessionActionBar from "./components/SessionActionBar";
 
 const queryClient = new QueryClient();
 
@@ -36,6 +37,7 @@ const App = () => (
         <LanguageProvider>
           <SessionProvider>
             <BrowserRouter>
+              <SessionActionBar />
               <Routes>
                 {/* Auth Routes */}
                 <Route path="/signup" element={<SignUp />} />

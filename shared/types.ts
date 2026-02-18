@@ -84,6 +84,9 @@ export interface DrivingSession {
   endTime?: string;
   status: "active" | "ended";
 
+  // Trip phase controls sequencing of pickups vs deliveries
+  tripPhase?: "collecting" | "delivering";
+
   // Orders within this session
   orderIds: string[];
 
