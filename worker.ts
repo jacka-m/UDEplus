@@ -14,12 +14,28 @@ export default {
 
     // Try to fetch the requested asset
     const response = await env.ASSETS.fetch(request);
-    
-    // If 404 (not found), serve index.html for SPA routing fallback
-    if (response.status === 404) {
+
+    const accept = request.headers.get("accept") || "";
+    const pathname = url.pathname || "/";
+
+    // If the request is clearly for a static asset (has an extension or is under /assets/)
+    // and the asset response looks like HTML, treat it as not found to avoid returning
+    // index.html as a JS/WASM asset (which causes the browser MIME error).
+    const looksLikeAssetRequest = /\.[a-z0-9]+$/i.test(pathname) || pathname.startsWith("/assets/");
+    const contentType = response.headers.get("Content-Type") || response.headers.get("content-type") || "";
+
+    if (looksLikeAssetRequest && contentType.includes("text/html")) {
+      // Return a 404 so the browser doesn't try to execute HTML as JS/WASM
+      return new Response("Not found", { status: 404 });
+    }
+
+    // SPA navigation fallback: only serve index.html for navigation (HTML) requests
+    // that accept HTML and are not direct asset requests.
+    const isNavigationRequest = request.method === "GET" && accept.includes("text/html") && !looksLikeAssetRequest;
+    if ((response.status === 404 || isNavigationRequest) && isNavigationRequest) {
       return env.ASSETS.fetch(new Request(new URL("/index.html", request.url), request));
     }
-    
+
     return response;
   },
 };
