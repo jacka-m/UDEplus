@@ -185,3 +185,32 @@ export const safeStorage = new SafeStorage();
 export function useSafeStorage() {
   return safeStorage;
 }
+
+/**
+ * Initialize application storage with safe defaults on first load or after cleared storage.
+ * This ensures the app doesn't assume presence of keys and avoids requiring users to manually clear storage.
+ */
+export function initAppStorageDefaults() {
+  try {
+    // feature opt-ins: default to false
+    if (safeStorage.getItem("ude_opt_in_server_ocr") === null) {
+      safeStorage.setItem("ude_opt_in_server_ocr", "false");
+    }
+    if (safeStorage.getItem("ude_opt_in_telemetry") === null) {
+      safeStorage.setItem("ude_opt_in_telemetry", "false");
+    }
+
+    // versioning key to detect migrations
+    if (safeStorage.getItem("ude_data_version") === null) {
+      safeStorage.setItem("ude_data_version", "1");
+    }
+
+    // ensure active order keys exist (no-op if absent) — do not populate with real data
+    if (safeStorage.getItem(ACTIVE_ORDER_KEY) === null) {
+      // keep absent: callers expect null when nothing saved; just ensure API stability
+    }
+  } catch (e) {
+    // ignore — SafeStorage handles fallbacks and reports as needed
+    console.warn("initAppStorageDefaults failed", e);
+  }
+}

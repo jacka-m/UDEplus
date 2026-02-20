@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useEffect } from "react";
 import { AuthProvider } from "./context/AuthContext";
 import { SessionProvider } from "./context/SessionContext";
 import { LanguageProvider } from "./context/LanguageContext";
@@ -26,10 +27,16 @@ import AdminMLPanel from "./pages/AdminMLPanel";
 import ManualSessionCreator from "./pages/ManualSessionCreator";
 import SessionActionBar from "./components/SessionActionBar";
 import BackToDashboard from "./components/BackToDashboard";
+import { initAppStorageDefaults } from "./utils/storage";
 
 const queryClient = new QueryClient();
 
-const App = () => (
+const App = () => {
+  useEffect(() => {
+    initAppStorageDefaults();
+  }, []);
+
+  return (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
@@ -175,6 +182,7 @@ const App = () => (
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
-);
+  );
+};
 
 export default App;
