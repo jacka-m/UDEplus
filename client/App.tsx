@@ -25,6 +25,7 @@ import SessionEnd from "./pages/SessionEnd";
 import AdminMLPanel from "./pages/AdminMLPanel";
 import ManualSessionCreator from "./pages/ManualSessionCreator";
 import SessionActionBar from "./components/SessionActionBar";
+import BackToDashboard from "./components/BackToDashboard";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +39,7 @@ const App = () => (
           <SessionProvider>
             <BrowserRouter>
               <SessionActionBar />
+              <BackToDashboard />
               <Routes>
                 {/* Auth Routes */}
                 <Route path="/signup" element={<SignUp />} />

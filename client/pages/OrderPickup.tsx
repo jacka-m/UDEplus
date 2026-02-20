@@ -74,21 +74,20 @@ export default function OrderPickup() {
         ...orderData,
         actualStartTime: new Date().toISOString(),
       };
+
       // Update session orders and navigate to next unpicked order if present
-      const { updateOrderInSession, getNextUnpickedOrder, setTripPhase } = require("@/context/SessionContext").useSession();
       try {
         updateOrderInSession && updateOrderInSession(updatedOrder);
       } catch (e) {
         // ignore if session helpers not available
       }
 
-      const nextOrder = (() => {
-        try {
-          return getNextUnpickedOrder ? getNextUnpickedOrder() : null;
-        } catch (e) {
-          return null;
-        }
-      })();
+      let nextOrder: OrderData | null = null;
+      try {
+        nextOrder = getNextUnpickedOrder ? getNextUnpickedOrder() : null;
+      } catch (e) {
+        nextOrder = null;
+      }
 
       if (next < totalStops && nextOrder) {
         saveActiveOrderState("pickup", nextOrder);

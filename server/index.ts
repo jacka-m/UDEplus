@@ -16,6 +16,7 @@ import {
   handleExportAllData,
     handleDeleteOrder,
 } from "./routes/orders";
+import telemetryRouter from "./routes/telemetry";
 
 export function createServer(opts?: { skipBodyParsing?: boolean }) {
   const app = express();
@@ -61,6 +62,8 @@ export function createServer(opts?: { skipBodyParsing?: boolean }) {
 
       // Validate required fields
       if (!session.userId) {
+  // telemetry endpoint for opt-in anonymized records
+  app.use("/api", telemetryRouter);
         return res.status(400).json({
           message: "userId is required",
           success: false,
@@ -135,6 +138,19 @@ export function createServer(opts?: { skipBodyParsing?: boolean }) {
       });
     }
   });
+
+  // OCR parse route (server-side fallback)
+  try {
+    // Use dynamic import so this still runs in environments without multer/tesseract
+    // Register route if modules are available
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { ocrRouteWrapper, handleOcrParse } = require("./routes/ocr");
+    app.post("/api/ocr/parse", handleOcrParse, ocrRouteWrapper as any);
+  } catch (e) {
+    console.warn("OCR route not registered (dependencies missing):", e?.message || e);
+  }
+
+  // telemetry is registered above via telemetryRouter
 
   return app;
 }

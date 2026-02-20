@@ -48,7 +48,7 @@ const steps = [
 export default function Onboarding() {
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
 
   const handleNext = () => {
@@ -69,11 +69,15 @@ export default function Onboarding() {
     // Mark onboarding as completed
     if (user) {
       try {
-        await fetch("/api/auth/complete-onboarding", {
+        const response = await fetch("/api/auth/complete-onboarding", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ userId: user.id }),
         });
+        if (response.ok) {
+          const data = await response.json();
+          if (data?.user && updateUser) updateUser(data.user);
+        }
       } catch (error) {
         console.error("Failed to mark onboarding complete:", error);
       }
@@ -85,11 +89,15 @@ export default function Onboarding() {
     // Skip onboarding
     if (user) {
       try {
-        await fetch("/api/auth/complete-onboarding", {
+        const response = await fetch("/api/auth/complete-onboarding", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ userId: user.id }),
         });
+        if (response.ok) {
+          const data = await response.json();
+          if (data?.user && updateUser) updateUser(data.user);
+        }
       } catch (error) {
         console.error("Failed to mark onboarding complete:", error);
       }

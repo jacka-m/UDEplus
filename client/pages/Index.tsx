@@ -9,6 +9,8 @@ import { OrderData } from "@shared/types";
 import { mlModel } from "@/utils/mlModel";
 import { delayedDataReminder } from "@/utils/delayedDataReminder";
 import { ConfirmModal } from "@/components/ConfirmModal";
+import OfferScanner from "@/components/OfferScanner";
+import ParsedOfferConfirm from "@/components/ParsedOfferConfirm";
 import { validateOrderData, getValidationErrorMessage } from "@/utils/dataValidation";
 import { saveActiveOrderState } from "@/utils/storage";
 import { toast } from "@/hooks/use-toast";
@@ -51,6 +53,8 @@ export default function Index() {
   const [sessionEndLoading, setSessionEndLoading] = useState(false);
   const [reminderOrder, setReminderOrder] = useState<OrderData | null>(null);
   const [showReminderModal, setShowReminderModal] = useState(false);
+  const [parsedOffer, setParsedOffer] = useState<any>(null);
+  const [showParsedConfirm, setShowParsedConfirm] = useState(false);
   const [showEndSessionConfirm, setShowEndSessionConfirm] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const timerRef = useRef<NodeJS.Timeout>();
@@ -164,6 +168,50 @@ export default function Index() {
     const calculatedScore = calculateScore(formData);
     setScore(calculatedScore);
     setStep("recommendation");
+  };
+
+  const handleParsedOffer = (fields: { payout?: number; estimatedTime?: number; miles?: number; pickupZone?: string; stops?: number; rawText?: string; confidence?: number; }) => {
+    // Save parsed offer and open confirmation modal for user edits
+    setParsedOffer(fields);
+    setShowParsedConfirm(true);
+  };
+
+  const handleConfirmParsed = (updated: any) => {
+    setShowParsedConfirm(false);
+    setParsedOffer(null);
+    // Apply to form
+    setFormData((prev) => ({
+      ...prev,
+      payout: updated.payout ?? prev.payout,
+      estimatedTime: updated.estimatedTime ?? prev.estimatedTime,
+      miles: updated.miles ?? prev.miles,
+      pickupZone: updated.pickupZone ?? prev.pickupZone,
+      stops: updated.stops ?? prev.stops,
+    }));
+
+    // Validate & run scoring
+    const errors = validateForm({
+      stops: updated.stops ?? formData.stops,
+      payout: updated.payout ?? formData.payout,
+      miles: updated.miles ?? formData.miles,
+      estimatedTime: updated.estimatedTime ?? formData.estimatedTime,
+      pickupZone: updated.pickupZone ?? formData.pickupZone,
+      state: formData.state,
+    } as any);
+    if (Object.keys(errors).length === 0) {
+      const calculatedScore = calculateScore({
+        stops: updated.stops ?? formData.stops,
+        payout: updated.payout ?? formData.payout,
+        miles: updated.miles ?? formData.miles,
+        estimatedTime: updated.estimatedTime ?? formData.estimatedTime,
+        pickupZone: updated.pickupZone ?? formData.pickupZone,
+        state: formData.state,
+      } as any);
+      setScore(calculatedScore);
+      setStep("recommendation");
+    } else {
+      setFormErrors(errors);
+    }
   };
 
   const handleTookOffer = () => {
@@ -506,6 +554,9 @@ export default function Index() {
               >
                 {t('order.analyzeButton')} <ChevronRight className="w-4 h-4" />
               </button>
+              <div className="mt-3 flex justify-center">
+                <OfferScanner onParse={handleParsedOffer} />
+              </div>
             </div>
           </div>
         )}
@@ -678,6 +729,7 @@ export default function Index() {
           onCancel={() => setShowLogoutConfirm(false)}
           isDangerous
         />
+        <ParsedOfferConfirm open={showParsedConfirm} fields={parsedOffer} onConfirm={handleConfirmParsed} onCancel={() => setShowParsedConfirm(false)} />
       </div>
     </div>
   );

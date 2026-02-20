@@ -1,8 +1,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import { useSession } from "@/context/SessionContext";
+import { loadActiveOrderState } from "@/utils/storage";
 import { useLanguage } from "@/context/LanguageContext";
 import { LogOut, MapPin, DollarSign, Globe, ChevronDown, Filter, Lock } from "lucide-react";
+import ProfileSessionReturnButton from "@/components/ProfileSessionReturnButton";
+import ConsentModal from "@/components/ConsentModal";
 import { getMinimumWageByZip, getCostOfLivingFactor } from "@/utils/minimumWage";
 import { ordersManager } from "@/utils/ordersManager";
 import { OrderData, DrivingSession } from "@shared/types";
@@ -23,6 +27,7 @@ export default function Profile() {
   const [tempZipCode, setTempZipCode] = useState(user?.zipCode || "");
   const [tempLanguage, setTempLanguage] = useState(user?.language || "en");
   const [savingChanges, setSavingChanges] = useState(false);
+  const [showConsent, setShowConsent] = useState<{ type: "server" | "telemetry" | null }>({ type: null });
 
   useEffect(() => {
     if (user?.zipCode) {
@@ -173,12 +178,15 @@ export default function Profile() {
           <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
             {t('nav.ude')}
           </h1>
-          <button
-            onClick={() => navigate("/")}
-            className="text-gray-600 hover:text-gray-900 transition"
-          >
-            {t('profile.backToDashboard')}
-          </button>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate("/")}
+              className="text-gray-600 hover:text-gray-900 transition"
+            >
+              {t('profile.backToDashboard')}
+            </button>
+            <ProfileSessionReturnButton />
+          </div>
         </div>
       </div>
 
@@ -322,6 +330,68 @@ export default function Profile() {
               </p>
             </div>
           </div>
+
+          {/* OCR & Telemetry Opt-ins */}
+          <div className="mt-6 grid grid-cols-1 gap-4">
+            <div className="bg-white rounded-lg p-4 border">
+              <h3 className="font-semibold text-gray-900 mb-2">Image OCR & Telemetry</h3>
+              <p className="text-sm text-gray-600 mb-3">
+                Enable server-side OCR parsing and opt-in to anonymous telemetry to improve parsing accuracy across platforms.
+              </p>
+              <div className="flex gap-3">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={localStorage.getItem("ude_opt_in_server_ocr") === "true"}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setShowConsent({ type: "server" });
+                      } else {
+                        localStorage.setItem("ude_opt_in_server_ocr", "false");
+                        window.dispatchEvent(new Event("storage"));
+                      }
+                    }}
+                  />
+                  <span className="text-sm">Allow server-side OCR fallback</span>
+                </label>
+
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={localStorage.getItem("ude_opt_in_telemetry") === "true"}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setShowConsent({ type: "telemetry" });
+                      } else {
+                        localStorage.setItem("ude_opt_in_telemetry", "false");
+                        window.dispatchEvent(new Event("storage"));
+                      }
+                    }}
+                  />
+                  <span className="text-sm">Opt-in to anonymous parsing telemetry</span>
+                </label>
+              </div>
+            </div>
+          </div>
+          <ConsentModal
+            open={showConsent.type !== null}
+            title={showConsent.type === "server" ? "Server-side OCR Consent" : "Telemetry Consent"}
+            description={
+              showConsent.type === "server"
+                ? "Server-side OCR will upload screenshots to our secure server for improved parsing when on-device OCR confidence is low. Images are processed and deleted promptly."
+                : "Telemetry will send anonymized parsing results (no PII) to help improve OCR accuracy. This is optional and can be revoked anytime."
+            }
+            onConfirm={() => {
+              if (showConsent.type === "server") {
+                localStorage.setItem("ude_opt_in_server_ocr", "true");
+              } else if (showConsent.type === "telemetry") {
+                localStorage.setItem("ude_opt_in_telemetry", "true");
+              }
+              setShowConsent({ type: null });
+              window.dispatchEvent(new Event("storage"));
+            }}
+            onCancel={() => setShowConsent({ type: null })}
+          />
 
           {/* Admin Panel Access (for jack_am) */}
           {user?.username === "jack_am" && (
